@@ -22,3 +22,6 @@ def atbashcrypt(message):
         resultlist[l] = resultlist[l].upper()
     result = ''.join(resultlist)
     return result
+
+#def caesarcrypt(message):
+#
