@@ -44,7 +44,7 @@ def caesarcrypt(message, key: int, flag):
                 result.append(ruslaphupper[(ruslaphupperd[message[i]] + key)%(len(ruslaphupper))])
             elif message[i] in rusalphlower:
                 result.append(rusalphlower[(ruslaphlowerd[message[i]] + key) % (len(rusalphlower))])
-                print((ruslaphlowerd[message[i]] + key))
+                #print((ruslaphlowerd[message[i]] + key))
             elif message[i] in engalphlower:
                 result.append(engalphlower[(engalphlowerd[message[i]] + key) % (len(engalphlower) )])
             elif message[i] in engalphupper:
