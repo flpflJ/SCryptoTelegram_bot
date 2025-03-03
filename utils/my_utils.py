@@ -54,39 +54,42 @@ def caesarcrypt(message, key: int, flag):
             else:
                 result.append(message[i])
         return ''.join(result)
-    except ValueError:
-        return 'Введено неккоректное смещение. Введите число.'
+    except (ValueError, TypeError):
+        return 'Введено неккоректное смещение либо некорректное сообщение. Введите число в смещение, либо текст.'
 def richelieu(message,key,flag):
-    validation_pattern = r'^(\(\d+(?:,\d+)*\))+$'
-    if not re.match(validation_pattern, key):
-        return "Ошибка: Строка не соответствует формату (x,y,z,...)(x,y,z,...)..." #idk
-    f = ''
-    group_pattern = r'\((\d+(?:,\d+)*)\)'
-    groups = re.findall(group_pattern, key)
-    result = [group.split(',') for group in groups]
-    lenof = 0
-    for r in result:
-        testr = [str(i) for i in range(1,len(r)+1)]
-        if not(set(r) == set(testr)):
+    try:
+        validation_pattern = r'^(\(\d+(?:,\d+)*\))+$'
+        if not re.match(validation_pattern, key):
+            return "Ошибка: Строка не соответствует формату (x,y,z,...)(x,y,z,...)..." #idk
+        f = ''
+        group_pattern = r'\((\d+(?:,\d+)*)\)'
+        groups = re.findall(group_pattern, key)
+        result = [group.split(',') for group in groups]
+        lenof = 0
+        for r in result:
+            testr = [str(i) for i in range(1,len(r)+1)]
+            if not(set(r) == set(testr)):
+                return 'Некорректный ключ!'
+            lenof += len(r)
+        if lenof > len(message):
             return 'Некорректный ключ!'
-        lenof += len(r)
-    if lenof > len(message):
-        return 'Некорректный ключ!'
 
-    d = 0
-    if flag == 0:
-        for r in result:
-            for i in range(len(r)):
-                f += f.join(message[d+int(r[i])-1])
-            d+=len(r)
-    else:
-        f = list(message)
-        for r in result:
-            for i in range(len(r)):
-                #f = list(message)
-                f[d+int(r[i])-1] = message[d+i]
-            d += len(r)
-        f = ''.join(f)
-    if(d != len(message)):
-        f += "".join(message[d:])
-    return f
+        d = 0
+        if flag == 0:
+            for r in result:
+                for i in range(len(r)):
+                    f += f.join(message[d+int(r[i])-1])
+                d+=len(r)
+        else:
+            f = list(message)
+            for r in result:
+                for i in range(len(r)):
+                    #f = list(message)
+                    f[d+int(r[i])-1] = message[d+i]
+                d += len(r)
+            f = ''.join(f)
+        if(d != len(message)):
+            f += "".join(message[d:])
+        return f
+    except TypeError:
+        return 'Некорректный ключ, либо нет сообщения.'

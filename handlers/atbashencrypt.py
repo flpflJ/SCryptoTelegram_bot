@@ -24,7 +24,7 @@ async def cypherReceive(call: CallbackQuery, state: FSMContext):
 @encryrouter.callback_query(F.data == 'msg')
 async def msgReceive(call: CallbackQuery, state: FSMContext):
     async with ChatActionSender(bot=bot, chat_id = call.from_user.id):
-        await asyncio.sleep(1)
+        #await asyncio.sleep(1)
         await call.message.delete()
         await call.message.answer('Введите сообщение:')
     await state.set_state(message_to_crypto.messagerec)
@@ -43,7 +43,7 @@ async def cmd_atbash_process(message: Message, state: FSMContext):
 @encryrouter.callback_query(F.data == 'key')
 async def keyReceive(call: CallbackQuery, state: FSMContext):
     async with ChatActionSender(bot=bot, chat_id=call.from_user.id):
-        await asyncio.sleep(1)
+        #await asyncio.sleep(1)
         await call.message.delete()
         await call.message.answer('Введите ключ. Формат ключа: текст, число, либо (x,y,z,...).., где x,y,z - числа. Например (3,2,1)(2,1)')
     await state.set_state(message_to_crypto.key)
@@ -63,7 +63,7 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     async with ChatActionSender.typing(bot=bot, chat_id=call.from_user.id):
         await call.message.delete()
-        await asyncio.sleep(1)
+        #await asyncio.sleep(1)
         cypher = data.get("typeOfCrypt")
         encrypted_message = ''
         if(cypher == 'atbash'):
@@ -72,11 +72,11 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
             encrypted_message = caesarcrypt(data.get("messagerec"),data.get("key"),0)
         elif(cypher == 'richeliu'):
             encrypted_message = richelieu(data.get("messagerec"),data.get("key"),0)
-    if(encrypted_message == ''):
+    if(data.get("messagerec") == '' or encrypted_message == ''):
         await call.message.answer('<b>Не введено сообщение.</b>', reply_markup=inline_greet())
     elif(type(data.get("typeOfCrypt")) == ''):
         await call.message.answer('<b>Не задан алгоритм шифрования.</b>',reply_markup=inline_greet())
-    elif((cypher == 'richeliu' or cypher == 'caesar') and type(data.get("key"))==''):
+    elif((cypher == 'richeliu' or cypher == 'caesar') and data.get("key")==''):
         await call.message.answer('<b>Не задан ключ.</b>', reply_markup=inline_greet())
     else:
         await call.message.answer(f'<tg-spoiler>{encrypted_message}</tg-spoiler>', reply_markup=crypto_inline_greet())
@@ -86,7 +86,7 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     async with ChatActionSender.typing(bot=bot, chat_id=call.from_user.id):
         await call.message.delete()
-        await asyncio.sleep(1)
+        #await asyncio.sleep(1)
         cypher = data.get("typeOfCrypt")
         encrypted_message = ''
         if(cypher == 'atbash'):
@@ -95,13 +95,12 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
             encrypted_message = caesarcrypt(data.get("messagerec"),data.get("key"),1)
         elif(cypher == 'richeliu'):
             encrypted_message = richelieu(data.get("messagerec"),data.get("key"),1)
-    if(encrypted_message == ''):
+    if(data.get("messagerec") == '' or encrypted_message == ''):
         await call.message.answer('<b>Не введено сообщение.</b>', reply_markup=inline_greet())
-    elif(data.get("typeOfCrypt") is None):
+    elif(data.get("typeOfCrypt") == ''):
         await call.message.answer('<b>Не задан алгоритм шифрования.</b>',reply_markup=inline_greet())
-    elif((cypher == 'richeliu' or cypher == 'caesar' or cypher==None) and data.get("key") is None):
+    elif((cypher == 'richeliu' or cypher == 'caesar') and data.get("key") == ''):
         await call.message.answer('<b>Не задан ключ.</b>', reply_markup=inline_greet())
     else:
-        await call.message.answer('Зашифрованное сообщение: ', reply_markup=crypto_inline_greet())
-    #await call.message.answer(f'<tg-spoiler>{encrypted_message}</tg-spoiler>', reply_markup=crypto_inline_greet())
+        await call.message.answer(f'<tg-spoiler>{encrypted_message}</tg-spoiler>', reply_markup=crypto_inline_greet())
     await state.clear()
