@@ -1,7 +1,7 @@
 import asyncio
 from create_bot import bot, dp, scheduler
 from handlers.start import start_router
-from handlers.atbashencrypt import encryrouter
+from handlers.encryption import encryrouter
 # from work_time.time_func import send_time_msg
 
 async def main():
