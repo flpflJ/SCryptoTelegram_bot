@@ -33,8 +33,8 @@ async def cmd_message_receive(message: Message, state: FSMContext):
     await state.update_data(messagerec=''.join(ddd))
     if(len(ddd) == 1):
         await message.answer(f'<b>Сообщение введено</b>. Выберите опцию', reply_markup=settings_inline())
-    async with ChatActionSender(bot=bot, chat_id=message.chat.id):
-        await asyncio.sleep(1)
+    #async with ChatActionSender(bot=bot, chat_id=message.chat.id):
+        #await asyncio.sleep(1)
     ddd.clear()
     await state.set_state(state=None)
 
@@ -52,8 +52,9 @@ async def cmd_key_receive(message: Message, state: FSMContext):
     if(len(kkk) == 1):
         await message.answer(f'<b>Ключ введен</b>. Выберите опцию', reply_markup=settings_inline())
     async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
-        await asyncio.sleep(1)
+        #await asyncio.sleep(1)
         kkk.clear()
+
 @encryrouter.callback_query(F.data == 'encrypto')
 async def encryptCmd(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -82,6 +83,7 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
                 await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
             await call.message.answer('Сообщение обработано. ', reply_markup=crypto_inline_greet())
     await state.set_state()
+
 @encryrouter.callback_query(F.data == 'decrypt')
 async def decryptCmd(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()

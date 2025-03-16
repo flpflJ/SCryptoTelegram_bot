@@ -56,6 +56,7 @@ def caesarcrypt(message, key: int, flag):
         return ''.join(result)
     except (ValueError, TypeError):
         return 'Введено неккоректное смещение либо некорректное сообщение. Введите число в смещение, либо текст.'
+
 def richelieu(message,key,flag):
     try:
         validation_pattern = r'^(\(\d+(?:,\d+)*\))+$'
@@ -93,3 +94,12 @@ def richelieu(message,key,flag):
         return f
     except TypeError:
         return 'Некорректный ключ, либо нет сообщения.'
+
+def gronsfield_cypher(message,key,flag):
+    raise Exception("not implemented yet")
+
+def vigenere_cypher(message,key,flag):
+    raise Exception("not implemented yet")
+
+def playfair_cypher(message,key,flag):
+    raise Exception("not implemented yet")
