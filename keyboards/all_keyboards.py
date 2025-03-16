@@ -18,6 +18,9 @@ def settings_encrypt_inline():
     f = [[InlineKeyboardButton(text='🕍 Шифр Атбаш', callback_data = 'atbash')],
          [InlineKeyboardButton(text='👑 Шифр Цезаря', callback_data='caesar')],
          [InlineKeyboardButton(text='🎎 Шифр Ришелье',callback_data='richeliu')],
+         [InlineKeyboardButton(text='⚔️ Шифр Гронсфельда', callback_data='gronsfeld')],
+         [InlineKeyboardButton(text='⚗️ Шифр Виженера', callback_data='vigenere')],
+         [InlineKeyboardButton(text='⚛️ Шифр Плейфера', callback_data='playfair')],
          [InlineKeyboardButton(text='🔙 Назад', callback_data = 'settings')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=f)

@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
 from handlers.start import message_to_crypto
 from keyboards.all_keyboards import settings_encrypt_inline, crypto_inline_greet, inline_greet, settings_inline
-from utils.my_utils import atbashcrypt, caesarcrypt, richelieu
+from utils.my_utils import atbashcrypt, caesarcrypt, richelieu, gronsfeld_cipher, vigenere_cipher, playfair_cipher
 
 encryrouter = Router()
 
@@ -14,7 +14,7 @@ ddd = []
 kkk = []
 MESSAGE_MAX_LENGTH = 4096
 
-@encryrouter.callback_query(F.data.in_(['atbash', 'caesar', 'richeliu']))
+@encryrouter.callback_query(F.data.in_(['atbash', 'caesar', 'richeliu', 'gronsfeld', 'vigenere', 'playfair']))
 async def cypherReceive(call: CallbackQuery, state: FSMContext):
     async with ChatActionSender(bot=bot, chat_id=call.from_user.id):
         await call.message.edit_text('Шифр успешно выбран. Выберите опцию', reply_markup=settings_inline())
@@ -67,20 +67,32 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
                 encrypted_message = caesarcrypt(data.get("messagerec"),data.get("key"),0)
             elif(cypher == 'richeliu'):
                 encrypted_message = richelieu(data.get("messagerec"),data.get("key"),0)
+            elif(cypher == 'gronsfeld'):
+                encrypted_message = gronsfeld_cipher(data.get("messagerec"),data.get("key"),0)
+            elif(cypher == 'vigenere'):
+                encrypted_message = vigenere_cipher(data.get("messagerec"),data.get("key"),0)
+            elif(cypher == 'playfair'):
+                encrypted_message = playfair_cipher(data.get("messagerec"),data.get("key"),0)
     if(data.get("typeOfCrypt") is None):
         await call.message.edit_text('<b>Не задан алгоритм шифрования.</b>',reply_markup=inline_greet())
     elif(data.get("messagerec") is None or encrypted_message == ''):
         await call.message.edit_text('<b>Не введено сообщение.</b>', reply_markup=inline_greet())
-    elif((cypher == 'richeliu' or cypher == 'caesar') and data.get("key") is None):
+    elif((cypher == 'richeliu' or cypher == 'caesar' or cypher == 'gronsfeld' or cypher == 'vigenere' or cypher == 'playfair') and data.get("key") is None):
         await call.message.edit_text('<b>Не задан ключ.</b>', reply_markup=inline_greet())
     else:
         if len(encrypted_message) <= MESSAGE_MAX_LENGTH:
-            await call.message.answer(f'<tg-spoiler>{encrypted_message}</tg-spoiler>')
+            if (cypher == 'playfair'):
+                await call.message.answer(encrypted_message, parse_mode=None)
+            else:
+                await call.message.answer(f'<tg-spoiler>{encrypted_message}</tg-spoiler>')
             await call.message.answer('Сообщение обработано. ', reply_markup=crypto_inline_greet())
         else:
             for x in range(0,len(encrypted_message), MESSAGE_MAX_LENGTH):
                 msg = encrypted_message[x: x + MESSAGE_MAX_LENGTH]
-                await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
+                if (cypher == 'playfair'):
+                    await call.message.answer(msg, parse_mode=None)
+                else:
+                    await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
             await call.message.answer('Сообщение обработано. ', reply_markup=crypto_inline_greet())
     await state.set_state()
 
@@ -96,19 +108,31 @@ async def decryptCmd(call: CallbackQuery, state: FSMContext):
                 encrypted_message = caesarcrypt(data.get("messagerec"),data.get("key"),1)
             elif(cypher == 'richeliu'):
                 encrypted_message = richelieu(data.get("messagerec"),data.get("key"),1)
+            elif(cypher == 'gronsfeld'):
+                encrypted_message = gronsfeld_cipher(data.get("messagerec"),data.get("key"),1)
+            elif(cypher == 'vigenere'):
+                encrypted_message = vigenere_cipher(data.get("messagerec"),data.get("key"),1)
+            elif(cypher == 'playfair'):
+                encrypted_message = playfair_cipher(data.get("messagerec"),data.get("key"),1)
     if(data.get("typeOfCrypt") is None):
         await call.message.edit_text('<b>Не задан алгоритм шифрования.</b>',reply_markup=inline_greet())
     elif(data.get("messagerec") is None or encrypted_message == ''):
         await call.message.edit_text('<b>Не введено сообщение.</b>', reply_markup=inline_greet())
-    elif((cypher == 'richeliu' or cypher == 'caesar') and data.get("key") is None):
+    elif((cypher == 'richeliu' or cypher == 'caesar' or cypher == 'gronsfeld' or cypher == 'vigenere' or cypher == 'playfair') and data.get("key") is None):
         await call.message.edit_text('<b>Не задан ключ.</b>', reply_markup=inline_greet())
     else:
         if len(encrypted_message) <= MESSAGE_MAX_LENGTH:
-            await call.message.answer(f'<tg-spoiler>{encrypted_message}</tg-spoiler>')
+            if (cypher == 'playfair'):
+                await call.message.answer(encrypted_message, parse_mode=None)
+            else:
+                await call.message.answer(f'<tg-spoiler>{encrypted_message}</tg-spoiler>')
             await call.message.answer('Сообщение обработано. ', reply_markup=crypto_inline_greet())
         else:
             for x in range(0, len(encrypted_message), MESSAGE_MAX_LENGTH):
                 msg = encrypted_message[x: x + MESSAGE_MAX_LENGTH]
-                await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
+                if (cypher == 'playfair'):
+                    await call.message.answer(msg, parse_mode=None)
+                else:
+                    await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
             await call.message.answer('Сообщение обработано. ', reply_markup=crypto_inline_greet())
     await state.set_state()

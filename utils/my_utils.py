@@ -95,7 +95,7 @@ def richelieu(message,key,flag):
     except TypeError:
         return 'Некорректный ключ, либо нет сообщения.'
 
-def gronsfield_cipher(message,key: str,flag):
+def gronsfeld_cipher(message,key: str,flag):
     alph = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
     pattern = r'^\d+$'
     if not re.fullmatch(pattern, key):
@@ -113,7 +113,7 @@ def gronsfield_cipher(message,key: str,flag):
             res += alph[message_formatted[i]]
     else:
         for i in range(len(message_formatted)):
-            message_formatted[i] = (int(message_formatted[i]) - int(len_key[i])) % len(alph)
+            message_formatted[i] = (int(message_formatted[i]) + int(len_key[i]) * -1) % len(alph)
             res += alph[message_formatted[i]]
     return res
 
@@ -153,7 +153,7 @@ def split_bigrams(text):
     for k in text:
         if len(strk) == 0:
             strk += k
-            if k == text[-1]:
+            if text.rfind(k) == len(text)-1:
                 mas.append(k + '~')
         else:
             if(strk[0] == k):
@@ -191,7 +191,10 @@ def playfair_cipher(message,key,flag):
     }
     matrix = list("".join(dict.fromkeys(key))) + form_matrix(alphabets, key)
     key_list = []
-    bigrams = split_bigrams(message)
+    if flag == 0:
+        bigrams = split_bigrams(message)
+    else:
+        bigrams = [message[i:i + 2] for i in range(0, len(message), 2)]
     res = ''
     for i in range(15):
         tmp = []
