@@ -13,15 +13,18 @@ class message_to_crypto(StatesGroup):
     typeOfCrypt = State()
     messagerec = State()
     key = State()
+
 @start_router.message(CommandStart())
 async def cmd_start(message: Message):
     await message.answer('Добро пожаловать. Выберите опцию',reply_markup=inline_greet())
+
 @start_router.callback_query(F.data == 'back')
 async def menu(call: CallbackQuery):
     await call.answer()
     async with ChatActionSender(bot=bot, chat_id=call.from_user.id):
         await call.message.delete()
     await call.message.answer('Добро пожаловать. Выберите опцию',reply_markup=inline_greet())
+
 @start_router.callback_query(F.data == 'settings')
 async def settings(call: CallbackQuery):
     await call.answer()

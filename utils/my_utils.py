@@ -115,6 +115,9 @@ def gronsfeld_cipher(message,key: str,flag):
         for i in range(len(message_formatted)):
             message_formatted[i] = (int(message_formatted[i]) + int(len_key[i]) * -1) % len(alph)
             res += alph[message_formatted[i]]
+    for i in range(len(message)):
+        if message[i] not in alph:
+            res = res[:i] + message[i] + res[i:]
     return res
 
 def vigenere_cipher(message,key,flag):
@@ -150,13 +153,17 @@ def vigenere_cipher(message,key,flag):
 def split_bigrams(text):
     mas = []
     strk = ""
-    for k in text:
+    for ind, k in enumerate(text):
         if len(strk) == 0:
             strk += k
-            if text.rfind(k) == len(text)-1:
+            if ind+1 == len(text):
                 mas.append(k + '~')
         else:
-            if(strk[0] == k):
+            if strk[0] == k and k == '~':
+                strk += '#'
+                mas.append(strk)
+                strk = k
+            elif strk[0] == k:
                 strk += '~'
                 mas.append(strk)
                 strk = k
@@ -164,6 +171,10 @@ def split_bigrams(text):
                 strk+= k
                 mas.append(strk)
                 strk = ""
+    if strk and strk != '~':
+        mas.append(strk + '~')
+    elif strk and strk == '~':
+        mas.append(strk + '#')
     return mas
 
 def form_matrix(alph, text):
@@ -238,4 +249,4 @@ def playfair_cipher(message,key,flag):
     if flag == 0:
         return res
     else:
-        return res.replace('~','')
+        return res.replace('~', '')
