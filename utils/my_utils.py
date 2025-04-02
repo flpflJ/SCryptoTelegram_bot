@@ -156,8 +156,6 @@ def split_bigrams(text):
     for ind, k in enumerate(text):
         if len(strk) == 0:
             strk += k
-            if ind+1 == len(text):
-                mas.append(k + '~')
         else:
             if strk[0] == k and k == '~':
                 strk += '#'
