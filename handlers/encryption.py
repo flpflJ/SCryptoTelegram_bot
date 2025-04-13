@@ -1,12 +1,15 @@
 import asyncio
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
 from create_bot import bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
 from handlers.start import message_to_crypto
 from keyboards.all_keyboards import settings_encrypt_inline, crypto_inline_greet, inline_greet, settings_inline
-from utils.my_utils import atbashcrypt, caesarcrypt, richelieu, gronsfeld_cipher, vigenere_cipher, playfair_cipher
+from utils.my_utils import atbashcrypt, caesarcrypt, richelieu, gronsfeld_cipher, vigenere_cipher, playfair_cipher, \
+    symbol_count, generate_hist, ind_of_c
+from io import BytesIO
+from tempfile import NamedTemporaryFile
 
 encryrouter = Router()
 
@@ -26,17 +29,40 @@ async def msgReceiveCallback(call: CallbackQuery, state: FSMContext):
         await call.message.answer('Введите сообщение:')
     await state.set_state(message_to_crypto.messagerec)
 
-@encryrouter.message(F.text, message_to_crypto.messagerec)
+@encryrouter.message()
 async def cmd_message_receive(message: Message, state: FSMContext):
+    file = None
+    if message.document:
+        file = message.document
+    elif message.photo:
+        file = message.photo[-1]  # Берем фото в лучшем качестве
+    elif message.video:
+        file = message.video
+    elif message.audio:
+        file = message.audio
+    elif message.voice:
+        file = message.voice
+    elif message.sticker:
+        file = message.sticker
     text = message.text
-    ddd.append(text)
-    await state.update_data(messagerec=''.join(ddd))
-    if(len(ddd) == 1):
-        await message.answer(f'<b>Сообщение введено</b>. Выберите опцию', reply_markup=settings_inline())
-    #async with ChatActionSender(bot=bot, chat_id=message.chat.id):
-        #await asyncio.sleep(1)
-    ddd.clear()
-    await state.set_state(state=None)
+    if text:
+        ddd.append(text)
+        await state.update_data(messagerec=''.join(ddd))
+        await state.update_data(isFile=0)
+        if(len(ddd) == 1):
+            await message.answer(f'<b>Сообщение введено</b>. Выберите опцию', reply_markup=settings_inline())
+        #async with ChatActionSender(bot=bot, chat_id=message.chat.id):
+            #await asyncio.sleep(1)
+        ddd.clear()
+        await state.set_state(state=None)
+    if file:
+        await state.update_data(isFile=1)
+        file_info = await message.bot.get_file(file.file_id)
+        downloaded = await message.bot.download_file(file_info.file_path)
+        await state.update_data(messagerec=downloaded)
+        await message.answer(f'<b>Файл принят</b>. Выберите опцию', reply_markup=settings_inline())
+        await state.set_state(state=None)
+
 
 @encryrouter.callback_query(F.data == 'key')
 async def keyReceive(call: CallbackQuery, state: FSMContext):
@@ -136,3 +162,60 @@ async def decryptCmd(call: CallbackQuery, state: FSMContext):
                     await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
             await call.message.answer('Сообщение обработано. ', reply_markup=crypto_inline_greet())
     await state.set_state()
+@encryrouter.callback_query(F.data == 'cryptoanalysis')
+async def cryptanalysis(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    msg = data.get("messagerec")
+    if (data.get("isFile") is None):
+        await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>', reply_markup=inline_greet())
+    elif(data.get("isFile") == 1):
+        msg = msg.decode("utf-8")
+    rd,ed,smbcnt = symbol_count(msg)
+    ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+    ea = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    euf,ruf = 0,0
+    for i in msg.upper():
+        if i in ra:
+            ruf = 1
+            break
+    for i in msg.upper():
+        if i in ea:
+            euf = 1
+            break
+    if euf == 1:
+        generate_hist(ed,1)
+    if ruf == 1:
+        generate_hist(rd,0)
+    recvtext, best_key_ru, best_key_en,kd,edd = ind_of_c(msg)
+    if data.get("isFile") == 1:
+        with NamedTemporaryFile(mode="w", suffix=".txt") as temp_file:
+            temp_file.write(recvtext)
+            temp_file.seek(0)
+            file = FSInputFile(temp_file.name)
+            await call.message.answer_document(document=file)
+    else:
+        if len(recvtext) <= MESSAGE_MAX_LENGTH:
+            await call.message.answer(f'<tg-spoiler>{recvtext}</tg-spoiler>')
+        else:
+            for x in range(0, len(recvtext), MESSAGE_MAX_LENGTH):
+                msg = recvtext[x: x + MESSAGE_MAX_LENGTH]
+                await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
+    if euf == 1 and ruf == 1:
+        photo_1 = InputMediaPhoto(type='photo',media=FSInputFile('graph0.jpg'),caption='Гистограммы')
+        photo_2 = InputMediaPhoto(type='photo', media=FSInputFile('graph1.jpg'))
+        media = [photo_1, photo_2]
+        await call.message.answer_media_group(media=media)
+        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in kd.items()])}```')
+        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in edd.items()])}```')
+    elif euf == 1 and ruf == 0:
+        photo_file = FSInputFile('graph1.jpg')
+        await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
+        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in edd.items()])}```')
+    elif euf == 0 and ruf == 1:
+        photo_file = FSInputFile('graph0.jpg')
+        await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
+        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in kd.items()])}```')
+
+
+
+

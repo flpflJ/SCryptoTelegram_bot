@@ -8,7 +8,8 @@ def inline_greet():
     ]
     return InlineKeyboardMarkup(inline_keyboard=f)
 def settings_inline():
-    f = [[InlineKeyboardButton(text='🔒 Шифр', callback_data = 'encrypt')],
+    f = [[InlineKeyboardButton(text='📊 Частотный криптоанализ', callback_data = 'cryptoanalysis')],
+         [InlineKeyboardButton(text='🔒 Шифр', callback_data = 'encrypt')],
          [InlineKeyboardButton(text='💬 Сообщение', callback_data='msg')],
          [InlineKeyboardButton(text='🗝 Ключ',callback_data='key')],
          [InlineKeyboardButton(text='🔙 Назад', callback_data = 'back')]

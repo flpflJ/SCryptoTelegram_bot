@@ -1,4 +1,5 @@
 import re
+import matplotlib as plt
 def atbashcrypt(message):
     rusalph = list('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
     rusalphdict = dict(zip(rusalph, list(range(len(rusalph)))))
@@ -248,3 +249,148 @@ def playfair_cipher(message,key,flag):
         return res
     else:
         return res.replace('~', '')
+
+def symbol_count(text):
+    try:
+        ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+        ea = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        rd = dict.fromkeys(ra,0)
+        ed = dict.fromkeys(ea, 0)
+        smbcnt = 0
+        text = text.upper()
+        for _ in text:
+            if _ in ra or _ in ea:
+                smbcnt+=1
+        for key in rd:
+            rd[key] = round(text.count(key)/smbcnt,3)
+        for key in ed:
+            ed[key] = round(text.count(key)/smbcnt,3)
+        return rd, ed, smbcnt
+    except ZeroDivisionError:
+        print('Текст не может быть пустой.')
+
+def generate_hist(rd, flag):
+    keys = list(rd.keys())
+    values = list(rd.values())
+    plt.figure(figsize=(8, 5))
+    plt.bar(keys, values, color='skyblue')
+    if flag == 0:
+        plt.title("Гистограмма букв русского алфавита")
+    else:
+        plt.title("Гистограмма букв английского алфавита")
+    plt.xlabel("Буква")
+    plt.ylabel("Частота появления")
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    plt.savefig(f'graph{flag}.jpg')
+
+def symbol_replace(replace, replaceto, text):
+    text = text.upper()
+    replace = replace.upper()
+    replaceto = replaceto.upper()
+    text = text.replace(replace, '~')
+    text = text.replace(replaceto, replace)
+    text = text.replace('~', replaceto)
+    return text
+
+def ind_of_c(text, flag):
+    reference_prob_ru = {
+        "Р": 0.040, "Я": 0.018, "Х": 0.009, "О": 0.090, "В": 0.038, "Ы": 0.018, "Ж": 0.007, "Е": 0.072, "Ё": 0.072, "Л": 0.035, "З": 0.016, "Ю": 0.006, "А": 0.062,
+        "К": 0.028, "Ъ": 0.014, "Ь": 0.014, "Ш": 0.006, "И": 0.062, "М": 0.026, "Б": 0.014, "Ц": 0.004, "Н": 0.053, "Д": 0.025, "Г": 0.013, "Щ": 0.003, "Т": 0.053,
+        "П": 0.023, "Ч": 0.012, "Э": 0.003, "С": 0.045, "У": 0.021, "Й": 0.010, "Ф": 0.002
+    }
+    reference_prob_en = {
+        "E": 0.123, "L": 0.040, "B": 0.016, "T": 0.096, "D": 0.036, "G": 0.016, "A": 0.081, "C": 0.032, "V": 0.009, "O": 0.079, "U": 0.031, "K": 0.005, "N": 0.072,
+        "P": 0.023, "Q": 0.002, "I": 0.071, "F": 0.023, "X": 0.002, "S": 0.066, "M": 0.022, "J": 0.001, "R": 0.060, "W": 0.020, "Z": 0.001, "H": 0.051, "Y": 0.019
+    }
+    max_ic = -1
+    best_key_en = 0
+    best_key_ru = 0
+    rd,ed,smbcnt=symbol_count(text)
+    edd = dict()
+    kd = dict()
+    t = ''
+    ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+    char_to_ind = {char: i for i, char in enumerate(ra)}
+    for k in range(len(ra)):
+        cur_ic = 0.0
+        for char, freq in rd.items():
+            if char not in char_to_ind:
+                continue
+            cipher_idx = char_to_ind[char]
+            original_idx = (cipher_idx - k) % len(ra)
+            original_char = ra[original_idx]
+
+            cur_ic += freq * reference_prob_ru.get(original_char)
+        if cur_ic > max_ic:
+            max_ic = cur_ic
+            best_key_ru = k
+    for i in ra:
+        kd[i]=ra[char_to_ind[i]-best_key_ru % len(ra)]
+    rae = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    char_to_ind = {char: i for i, char in enumerate(rae)}
+    for k in range(len(rae)):
+        cur_ic = 0.0
+        for char, freq in ed.items():
+            if char not in char_to_ind:
+                continue
+            cipher_idx = char_to_ind[char]
+            original_idx = (cipher_idx - k) % len(rae)
+            original_char = rae[original_idx]
+
+            cur_ic += freq * reference_prob_en.get(original_char)
+        if cur_ic > max_ic:
+            max_ic = cur_ic
+            best_key_en = k
+    if flag == 0:
+        t = caesarcrypt(text,best_key_ru,1)
+    if flag == 1:
+        t = caesarcrypt(text,best_key_en, 1)
+    for i in rae:
+        edd[i]=rae[char_to_ind[i]-best_key_en % len(rae)]
+    return t, best_key_ru,best_key_en,kd,edd
+
+def parse_validate_pairs(str):
+    pattern = (
+        r'^\s*'
+        r'([A-ZА-ЯЁa-zа-яё]\s*-\s*[A-ZА-ЯЁa-zа-яё])'
+        r'(?:\s*,\s*([A-ZА-ЯЁa-zа-яё]\s*-\s*[A-ZА-ЯЁa-zа-яё]))*'
+        r'\s*$'
+    )
+    if not re.fullmatch(pattern,str.upper(),flags=re.IGNORECASE):
+        return 'Невалидный ввод. Формат должен быть вида: А - Б (пробелы значения не имеют, как и регистр)'
+    pairs = re.findall(
+        r'\s*([A-ZА-ЯЁa-zа-яё])\s*-\s*([A-ZА-ЯЁa-zа-яё])\s*',
+        str.upper(),
+        flags=re.IGNORECASE
+    )
+    EN_LETTERS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    RU_LETTERS = set('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ')
+    for pair in pairs:
+        first, second = pair[0].upper(), pair[1].upper()
+
+        lang_first = 0 if first in EN_LETTERS else 1 if first in RU_LETTERS else None
+        lang_second = 0 if second in EN_LETTERS else 1 if second in RU_LETTERS else None
+        if lang_first != lang_second:
+            return 'Невалидный ввод. Алфавиты не совпадают.'
+    left = [pair[0].upper() for pair in pairs]
+    right = [pair[1].upper() for pair in pairs]
+
+    return left, right
+
+def swap_symbol(left,right, kd, edd, text):
+    EN_LETTERS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    res_txt = ''
+    for i in range(len(left)):
+        if left[i] in EN_LETTERS:
+            res_txt = symbol_replace(edd[left[i]],right[i],text)
+            for k, v in edd:
+                if v == right[i]:
+                    edd[k] = edd[left[i]]
+            edd[left[i]] = right[i]
+        else:
+            res_txt = symbol_replace(kd[left[i]], right[i], text)
+            for k, v in kd:
+                if v == right[i]:
+                    kd[k] = kd[left[i]]
+            kd[left[i]] = right[i]
+    return res_txt

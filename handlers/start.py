@@ -13,6 +13,7 @@ class message_to_crypto(StatesGroup):
     typeOfCrypt = State()
     messagerec = State()
     key = State()
+    isFile = State()
 
 @start_router.message(CommandStart())
 async def cmd_start(message: Message):
