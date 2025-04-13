@@ -5,7 +5,8 @@ from create_bot import bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
 from handlers.start import message_to_crypto
-from keyboards.all_keyboards import settings_encrypt_inline, crypto_inline_greet, inline_greet, settings_inline
+from keyboards.all_keyboards import settings_encrypt_inline, crypto_inline_greet, inline_greet, settings_inline, \
+    crypto_inline_change_text_params
 from utils.my_utils import atbashcrypt, caesarcrypt, richelieu, gronsfeld_cipher, vigenere_cipher, playfair_cipher, \
     symbol_count, generate_hist, ind_of_c
 from io import BytesIO
@@ -183,10 +184,12 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
             euf = 1
             break
     if euf == 1:
-        generate_hist(ed,1)
+        recvtext, best_key_ru, best_key_en, kd, edd = ind_of_c(msg,1)
+        #generate_hist(ed,1)
     if ruf == 1:
-        generate_hist(rd,0)
-    recvtext, best_key_ru, best_key_en,kd,edd = ind_of_c(msg)
+        recvtext, best_key_ru, best_key_en, kd, edd = ind_of_c(msg,0)
+        #generate_hist(rd,0)
+    #recvtext, best_key_ru, best_key_en,kd,edd = ind_of_c(msg)
     if data.get("isFile") == 1:
         with NamedTemporaryFile(mode="w", suffix=".txt") as temp_file:
             temp_file.write(recvtext)
@@ -201,21 +204,22 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
                 msg = recvtext[x: x + MESSAGE_MAX_LENGTH]
                 await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
     if euf == 1 and ruf == 1:
-        photo_1 = InputMediaPhoto(type='photo',media=FSInputFile('graph0.jpg'),caption='Гистограммы')
-        photo_2 = InputMediaPhoto(type='photo', media=FSInputFile('graph1.jpg'))
-        media = [photo_1, photo_2]
-        await call.message.answer_media_group(media=media)
-        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in kd.items()])}```')
-        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in edd.items()])}```')
+        #photo_1 = InputMediaPhoto(type='photo',media=FSInputFile('graph0.jpg'),caption='Гистограммы')
+        #photo_2 = InputMediaPhoto(type='photo', media=FSInputFile('graph1.jpg'))
+        #media = [photo_1, photo_2]
+        #await call.message.answer_media_group(media=media)
+        await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in kd.items()])}</code>')
+        await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in edd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
     elif euf == 1 and ruf == 0:
-        photo_file = FSInputFile('graph1.jpg')
-        await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
-        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in edd.items()])}```')
+        #photo_file = FSInputFile('graph1.jpg')
+        #await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
+        await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in edd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
     elif euf == 0 and ruf == 1:
-        photo_file = FSInputFile('graph0.jpg')
-        await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
-        await call.message.answer(f'```{"\n".join([f"{k} - {v}" for k, v in kd.items()])}```')
-
+        #photo_file = FSInputFile('graph0.jpg')
+        #await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
+        await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in kd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
+    await state.update_data(messagerec=recvtext) #ЭТОТ ЕБАНЫЙ МАССИВ ЗА СТЕЙТАМИ ТАСКАТЬ НАДО БЛЯЯЯЯЯЯТЬ!!!!!!
+    await state.set_state()
 
 
 

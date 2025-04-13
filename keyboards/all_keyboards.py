@@ -30,3 +30,8 @@ def crypto_inline_greet():
         [InlineKeyboardButton(text='🔙 Назад', callback_data='back')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
+def crypto_inline_change_text_params():
+    inline_kb_list = [
+        [InlineKeyboardButton(text='🔙 Замена символов в тексте', callback_data='change')]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
