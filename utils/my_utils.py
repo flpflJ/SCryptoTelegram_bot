@@ -1,5 +1,5 @@
 import re
-import matplotlib as plt
+import matplotlib.pyplot as plt
 def atbashcrypt(message):
     rusalph = list('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
     rusalphdict = dict(zip(rusalph, list(range(len(rusalph)))))

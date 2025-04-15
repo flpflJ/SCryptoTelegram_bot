@@ -170,7 +170,7 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
     if (data.get("isFile") is None):
         await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>', reply_markup=inline_greet())
     elif(data.get("isFile") == 1):
-        msg = msg.decode("utf-8")
+        msg = msg.read().decode("utf-8")
     rd,ed,smbcnt = symbol_count(msg)
     ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
     ea = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -185,13 +185,13 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
             break
     if euf == 1:
         recvtext, best_key_ru, best_key_en, kd, edd = ind_of_c(msg,1)
-        #generate_hist(ed,1)
+        generate_hist(ed,1)
     if ruf == 1:
         recvtext, best_key_ru, best_key_en, kd, edd = ind_of_c(msg,0)
-        #generate_hist(rd,0)
+        generate_hist(rd,0)
     #recvtext, best_key_ru, best_key_en,kd,edd = ind_of_c(msg)
     if data.get("isFile") == 1:
-        with NamedTemporaryFile(mode="w", suffix=".txt") as temp_file:
+        with NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as temp_file:
             temp_file.write(recvtext)
             temp_file.seek(0)
             file = FSInputFile(temp_file.name)
@@ -211,8 +211,8 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
         await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in kd.items()])}</code>')
         await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in edd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
     elif euf == 1 and ruf == 0:
-        #photo_file = FSInputFile('graph1.jpg')
-        #await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
+        photo_file = FSInputFile('graph1.jpg')
+        await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
         await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in edd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
     elif euf == 0 and ruf == 1:
         #photo_file = FSInputFile('graph0.jpg')
