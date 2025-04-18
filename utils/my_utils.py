@@ -1,4 +1,7 @@
+import base64
 import re
+from ascii_graph import Pyasciigraph
+import io
 import matplotlib.pyplot as plt
 def atbashcrypt(message):
     rusalph = list('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
@@ -281,7 +284,10 @@ def generate_hist(rd, flag):
     plt.xlabel("Буква")
     plt.ylabel("Частота появления")
     plt.grid(axis='y', linestyle='--', alpha=0.5)
-    plt.savefig(f'graph{flag}.jpg')
+    stringbytes = io.BytesIO()
+    plt.savefig(stringbytes, format='jpg')
+    stringbytes.seek(0)
+    return base64.b64encode(stringbytes.read()).decode()
 
 def symbol_replace(replace, replaceto, text):
     text = text.upper()
@@ -292,7 +298,7 @@ def symbol_replace(replace, replaceto, text):
     text = text.replace('~', replaceto)
     return text
 
-def ind_of_c(text, flag):
+def ind_of_c(text):
     reference_prob_ru = {
         "Р": 0.040, "Я": 0.018, "Х": 0.009, "О": 0.090, "В": 0.038, "Ы": 0.018, "Ж": 0.007, "Е": 0.072, "Ё": 0.072, "Л": 0.035, "З": 0.016, "Ю": 0.006, "А": 0.062,
         "К": 0.028, "Ъ": 0.014, "Ь": 0.014, "Ш": 0.006, "И": 0.062, "М": 0.026, "Б": 0.014, "Ц": 0.004, "Н": 0.053, "Д": 0.025, "Г": 0.013, "Щ": 0.003, "Т": 0.053,
@@ -308,7 +314,6 @@ def ind_of_c(text, flag):
     rd,ed,smbcnt=symbol_count(text)
     edd = dict()
     kd = dict()
-    t = ''
     ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
     char_to_ind = {char: i for i, char in enumerate(ra)}
     for k in range(len(ra)):
@@ -327,6 +332,7 @@ def ind_of_c(text, flag):
     for i in ra:
         kd[i]=ra[char_to_ind[i]-best_key_ru % len(ra)]
     rae = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    max_ic = -1
     char_to_ind = {char: i for i, char in enumerate(rae)}
     for k in range(len(rae)):
         cur_ic = 0.0
@@ -341,13 +347,9 @@ def ind_of_c(text, flag):
         if cur_ic > max_ic:
             max_ic = cur_ic
             best_key_en = k
-    if flag == 0:
-        t = caesarcrypt(text,best_key_ru,1)
-    if flag == 1:
-        t = caesarcrypt(text,best_key_en, 1)
     for i in rae:
         edd[i]=rae[char_to_ind[i]-best_key_en % len(rae)]
-    return t, best_key_ru,best_key_en,kd,edd
+    return best_key_ru,best_key_en,kd,edd
 
 def parse_validate_pairs(str):
     pattern = (
@@ -394,3 +396,10 @@ def swap_symbol(left,right, kd, edd, text):
                     kd[k] = kd[left[i]]
             kd[left[i]] = right[i]
     return res_txt
+
+def hist_ascii_generate(rd):
+    d = ''
+    graph = Pyasciigraph(line_length=50, float_format='{0:,.3f}')
+    for line in graph.graph('ASCII-гистограмма', [(key, value) for key, value in rd.items()]):
+        d += line + "\n"
+    return d

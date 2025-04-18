@@ -1,6 +1,8 @@
 import asyncio
+import base64
+
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto
+from aiogram.types import Message, CallbackQuery, FSInputFile, InputMediaPhoto, BufferedInputFile
 from create_bot import bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
@@ -8,8 +10,7 @@ from handlers.start import message_to_crypto
 from keyboards.all_keyboards import settings_encrypt_inline, crypto_inline_greet, inline_greet, settings_inline, \
     crypto_inline_change_text_params
 from utils.my_utils import atbashcrypt, caesarcrypt, richelieu, gronsfeld_cipher, vigenere_cipher, playfair_cipher, \
-    symbol_count, generate_hist, ind_of_c
-from io import BytesIO
+    symbol_count, generate_hist, ind_of_c, hist_ascii_generate
 from tempfile import NamedTemporaryFile
 
 encryrouter = Router()
@@ -183,19 +184,18 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
         if i in ea:
             euf = 1
             break
-    if euf == 1:
-        recvtext, best_key_ru, best_key_en, kd, edd = ind_of_c(msg,1)
-        generate_hist(ed,1)
-    if ruf == 1:
-        recvtext, best_key_ru, best_key_en, kd, edd = ind_of_c(msg,0)
-        generate_hist(rd,0)
-    #recvtext, best_key_ru, best_key_en,kd,edd = ind_of_c(msg)
+    best_key_ru, best_key_en, kd, edd = ind_of_c(msg)
+    print(best_key_en, best_key_ru)
+    recvtext=''
+    for _ in msg.upper():
+        if _ in ra:
+            recvtext +=caesarcrypt(_,best_key_ru,1)
+        elif _ in ea:
+            recvtext +=caesarcrypt(_,best_key_en,1)
+        else:
+            recvtext += _
     if data.get("isFile") == 1:
-        with NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as temp_file:
-            temp_file.write(recvtext)
-            temp_file.seek(0)
-            file = FSInputFile(temp_file.name)
-            await call.message.answer_document(document=file)
+        await call.message.answer_document(BufferedInputFile(recvtext.encode('utf-8'),filename="out.txt"))
     else:
         if len(recvtext) <= MESSAGE_MAX_LENGTH:
             await call.message.answer(f'<tg-spoiler>{recvtext}</tg-spoiler>')
@@ -203,23 +203,24 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
             for x in range(0, len(recvtext), MESSAGE_MAX_LENGTH):
                 msg = recvtext[x: x + MESSAGE_MAX_LENGTH]
                 await call.message.answer(f'<tg-spoiler>{msg}</tg-spoiler>')
+    en_hist = generate_hist(ed, 1)
+    ru_hist = generate_hist(rd, 0)
     if euf == 1 and ruf == 1:
-        #photo_1 = InputMediaPhoto(type='photo',media=FSInputFile('graph0.jpg'),caption='Гистограммы')
-        #photo_2 = InputMediaPhoto(type='photo', media=FSInputFile('graph1.jpg'))
-        #media = [photo_1, photo_2]
-        #await call.message.answer_media_group(media=media)
+        photo_1 = InputMediaPhoto(type='photo',media=BufferedInputFile(base64.b64decode(ru_hist),filename="hist_ru.jpg"),caption='Гистограммы')
+        photo_2 = InputMediaPhoto(type='photo', media=BufferedInputFile(base64.b64decode(en_hist), filename="hist_en.jpg"))
+        media = [photo_1, photo_2]
+        #await call.message.answer(f'<pre>{hist_ascii_generate(rd)+hist_ascii_generate(ed)}</pre>')
+        await call.message.answer_media_group(media=media)
         await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in kd.items()])}</code>')
         await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in edd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
     elif euf == 1 and ruf == 0:
-        photo_file = FSInputFile('graph1.jpg')
-        await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
+        #await call.message.answer(f'<pre>{hist_ascii_generate(ed)}</pre>')
+        await call.message.answer_photo(BufferedInputFile(base64.b64decode(en_hist),filename="hist_en.jpg"), caption='Гистограмма')
         await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in edd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
     elif euf == 0 and ruf == 1:
-        #photo_file = FSInputFile('graph0.jpg')
-        #await call.message.answer_photo(photo=photo_file, caption='Гистограмма')
+        #await call.message.answer(f'<pre>{hist_ascii_generate(rd)}</pre>')
+        await call.message.answer_photo(BufferedInputFile(base64.b64decode(ru_hist),filename="hist_ru.jpg"), caption='Гистограмма')
         await call.message.answer(f'<b>Таблица замены</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in kd.items()])}</code>',reply_markup=crypto_inline_change_text_params())
-    await state.update_data(messagerec=recvtext) #ЭТОТ ЕБАНЫЙ МАССИВ ЗА СТЕЙТАМИ ТАСКАТЬ НАДО БЛЯЯЯЯЯЯТЬ!!!!!!
+    #await state.update_data(messagerec=recvtext) #ЭТОТ ЕБАНЫЙ МАССИВ ЗА СТЕЙТАМИ ТАСКАТЬ НАДО БЛЯЯЯЯЯЯТЬ!!!!!!
+    #а надо ли таскать в messagerec этот преобразованный позднее текст??
     await state.set_state()
-
-
-
