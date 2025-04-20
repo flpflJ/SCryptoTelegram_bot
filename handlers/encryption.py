@@ -8,9 +8,10 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.chat_action import ChatActionSender
 from handlers.start import message_to_crypto
 from keyboards.all_keyboards import settings_encrypt_inline, crypto_inline_greet, inline_greet, settings_inline, \
-    crypto_inline_change_text_params
+    crypto_inline_change_text_params, gamma_inline_settings
 from utils.my_utils import atbashcrypt, caesarcrypt, richelieu, gronsfeld_cipher, vigenere_cipher, playfair_cipher, \
-    symbol_count, generate_hist, ind_of_c, replace_symbol, parse_validate_pairs, swap_symbol, check_alphabets
+    symbol_count, generate_hist, ind_of_c, replace_symbol, parse_validate_pairs, swap_symbol, check_alphabets, rand_gen, \
+    gamma
 
 encryrouter = Router()
 
@@ -18,7 +19,7 @@ ddd = []
 kkk = []
 MESSAGE_MAX_LENGTH = 4096
 
-@encryrouter.callback_query(F.data.in_(['atbash', 'caesar', 'richeliu', 'gronsfeld', 'vigenere', 'playfair']))
+@encryrouter.callback_query(F.data.in_(['atbash', 'caesar', 'richeliu', 'gronsfeld', 'vigenere', 'playfair', 'xor_cipher']))
 async def cypherReceive(call: CallbackQuery, state: FSMContext):
     async with ChatActionSender(bot=bot, chat_id=call.from_user.id):
         await call.message.edit_text('Шифр успешно выбран. Выберите опцию', reply_markup=settings_inline())
@@ -46,17 +47,6 @@ async def cmd_message_receive(message: Message, state: FSMContext):
     elif message.sticker:
         file = message.sticker
     text = message.text
-    if text:
-        ddd.append(text)
-        await state.update_data(messagerec=''.join(ddd))
-        await state.update_data(isFile=0)
-        if(len(ddd) == 1):
-            await message.answer(f'<b>Сообщение введено</b>. Выберите опцию', reply_markup=settings_inline())
-        #async with ChatActionSender(bot=bot, chat_id=message.chat.id):
-            #await asyncio.sleep(1)
-        ddd.clear()
-        await state.update_data(res_dict=None)
-        await state.set_state(state=None)
     if file:
         await state.update_data(isFile=1)
         file_info = await message.bot.get_file(file.file_id)
@@ -64,8 +54,15 @@ async def cmd_message_receive(message: Message, state: FSMContext):
         await state.update_data(messagerec=downloaded)
         await message.answer(f'<b>Файл принят</b>. Выберите опцию', reply_markup=settings_inline())
         await state.update_data(res_dict=None)
-        await state.set_state(state=None)
-
+    if text:
+        ddd.append(text)
+        await state.update_data(messagerec=''.join(ddd))
+        await state.update_data(isFile=0)
+        if(len(ddd) == 1):
+            await message.answer(f'<b>Сообщение введено</b>. Выберите опцию', reply_markup=settings_inline())
+        ddd.clear()
+        await state.update_data(res_dict=None)
+    await state.set_state(state=None)
 
 @encryrouter.callback_query(F.data == 'key')
 async def keyReceive(call: CallbackQuery, state: FSMContext):
@@ -87,8 +84,21 @@ async def cmd_key_receive(message: Message, state: FSMContext):
 @encryrouter.callback_query(F.data == 'encrypto')
 async def encryptCmd(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    msg = data.get("messagerec")
     async with ChatActionSender.typing(bot=bot, chat_id=call.from_user.id):
         cypher = data.get("typeOfCrypt")
+        if (data.get("isFile") is None):
+            await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>', reply_markup=inline_greet())
+        elif (data.get("isFile") == 1 and cypher != 'xor_cipher'):
+            try:
+                msg = msg.read().decode("utf-8")
+                await state.update_data(messagerec=msg)
+            except (UnicodeDecodeError, AttributeError):
+                await call.message.answer('<b>Проблема с файлом. Вероятно, это не UTF-8?</b>',
+                                          reply_markup=inline_greet())
+                await state.set_state()
+                return 0
+        data = await state.get_data()
         if not(data.get("messagerec") is None):
             if(cypher == 'atbash'):
                 encrypted_message = atbashcrypt(data.get("messagerec"))
@@ -102,6 +112,59 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
                 encrypted_message = vigenere_cipher(data.get("messagerec"),data.get("key"),0)
             elif(cypher == 'playfair'):
                 encrypted_message = playfair_cipher(data.get("messagerec"),data.get("key"),0)
+            elif(cypher == 'xor_cipher'):
+                msg = data.get("messagerec")
+                if (data.get("isFile") is None):
+                    await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>',
+                                                 reply_markup=inline_greet())
+                elif (data.get("isFile") == 1):
+                    if(type(msg) is not bytes):
+                        msg = msg.read()
+                    #print(type(msg))
+                    m = data.get("modulo")
+                    a = data.get("multiplier")
+                    c = data.get("summand")
+                    seed = data.get("seed")
+                    if m is None:
+                        m = 22167236
+                    if c is None:
+                        c = 101393193
+                    if a is None:
+                        a = 1002378
+                    if seed is None:
+                        seed = 1
+                    await state.update_data(messagerec=msg)
+                    gamma_bytes = rand_gen(len(msg), data.get("seed"), data.get("multiplier"), data.get("summand"),
+                                           data.get("modulo"))
+                    #print(gamma(msg,gamma_bytes))
+                    await call.message.answer_document(
+                        BufferedInputFile(gamma(msg, gamma_bytes), filename="result.out"))
+                    await call.message.answer('Файл успешно обработан!', reply_markup=crypto_inline_greet())
+                    await call.message.answer(
+                        f'Значения параметров гаммирования: сид:<tg-spoiler> {seed}</tg-spoiler>, множитель: <tg-spoiler>{a}</tg-spoiler>, слагаемое: <tg-spoiler>{c}</tg-spoiler>, модуль: <tg-spoiler>{m}</tg-spoiler>')
+                    await state.set_state()
+                    return 0
+                else:
+                    m = data.get("modulo")
+                    a = data.get("multiplier")
+                    c = data.get("summand")
+                    seed = data.get("seed")
+                    if m is None:
+                        m = 22167236
+                    if c is None:
+                        c = 101393193
+                    if a is None:
+                        a = 1002378
+                    if seed is None:
+                        seed = 1
+                    await state.update_data(messagerec=msg)
+                    gamma_bytes = rand_gen(len(msg.encode('utf-8')), data.get("seed"), data.get("multiplier"), data.get("summand"),
+                                           data.get("modulo"))
+                    encr = gamma(msg.encode('utf-8'),gamma_bytes)
+                    encrypted_message = base64.b64encode(encr).decode()
+                    await call.message.answer(
+                        f'Значения параметров гаммирования: сид:<tg-spoiler> {seed}</tg-spoiler>, множитель: <tg-spoiler>{a}</tg-spoiler>, слагаемое: <tg-spoiler>{c}</tg-spoiler>, модуль: <tg-spoiler>{m}</tg-spoiler>')
+
     if(data.get("typeOfCrypt") is None):
         await call.message.edit_text('<b>Не задан алгоритм шифрования.</b>',reply_markup=inline_greet())
     elif(data.get("messagerec") is None or encrypted_message == ''):
@@ -128,8 +191,21 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
 @encryrouter.callback_query(F.data == 'decrypt')
 async def decryptCmd(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    msg = data.get("messagerec")
     async with ChatActionSender.typing(bot=bot, chat_id=call.from_user.id):
         cypher = data.get("typeOfCrypt")
+        if (data.get("isFile") is None):
+            await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>', reply_markup=inline_greet())
+        elif (data.get("isFile") == 1 and cypher != 'xor_cipher'):
+            try:
+                msg = msg.read().decode("utf-8")
+                await state.update_data(messagerec=msg)
+            except (UnicodeDecodeError, AttributeError):
+                await call.message.answer('<b>Проблема с файлом. Вероятно, это не UTF-8?</b>',
+                                          reply_markup=inline_greet())
+                await state.set_state()
+                return 0
+        data = await state.get_data()
         if not(data.get("messagerec") is None):
             if(cypher == 'atbash'):
                 encrypted_message = atbashcrypt(data.get("messagerec"))
@@ -143,6 +219,62 @@ async def decryptCmd(call: CallbackQuery, state: FSMContext):
                 encrypted_message = vigenere_cipher(data.get("messagerec"),data.get("key"),1)
             elif(cypher == 'playfair'):
                 encrypted_message = playfair_cipher(data.get("messagerec"),data.get("key"),1)
+            elif (cypher == 'xor_cipher'):
+                msg = data.get("messagerec")
+                if (data.get("isFile") is None):
+                    await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>',
+                                                 reply_markup=inline_greet())
+                elif (data.get("isFile") == 1):
+                    if (type(msg) is not bytes):
+                        msg = msg.read()
+                    #print(type(msg))
+                    m = data.get("modulo")
+                    a = data.get("multiplier")
+                    c = data.get("summand")
+                    seed = data.get("seed")
+                    if m is None:
+                        m = 22167236
+                    if c is None:
+                        c = 101393193
+                    if a is None:
+                        a = 1002378
+                    if seed is None:
+                        seed = 1
+                    await state.update_data(messagerec=msg)
+                    gamma_bytes = rand_gen(len(msg), data.get("seed"), data.get("multiplier"), data.get("summand"),
+                                           data.get("modulo"))
+                    await call.message.answer_document(
+                        BufferedInputFile(gamma(msg, gamma_bytes), filename="result.bin"))
+                    await call.message.answer('Файл успешно обработан!', reply_markup=crypto_inline_greet())
+                    await call.message.answer(
+                        f'Значения параметров гаммирования: сид:<tg-spoiler> {seed}</tg-spoiler>, множитель: <tg-spoiler>{a}</tg-spoiler>, слагаемое: <tg-spoiler>{c}</tg-spoiler>, модуль: <tg-spoiler>{m}</tg-spoiler>')
+                    await state.set_state()
+                    return 0
+                else:
+                    m = data.get("modulo")
+                    a = data.get("multiplier")
+                    c = data.get("summand")
+                    seed = data.get("seed")
+                    if m is None:
+                        m = 22167236
+                    if c is None:
+                        c = 101393193
+                    if a is None:
+                        a = 1002378
+                    if seed is None:
+                        seed = 1
+                    await state.update_data(messagerec=msg)
+                    #try:
+                    string_base64 = base64.b64decode(msg)
+                    gamma_bytes = rand_gen(len(msg), data.get("seed"), data.get("multiplier"), data.get("summand"),
+                                           data.get("modulo"))
+                    decr = gamma(string_base64, gamma_bytes)
+                    encrypted_message = decr.decode('utf-8', errors='ignore')
+                    await call.message.answer(
+                        f'Значения параметров гаммирования: сид:<tg-spoiler> {seed}</tg-spoiler>, множитель: <tg-spoiler>{a}</tg-spoiler>, слагаемое: <tg-spoiler>{c}</tg-spoiler>, модуль: <tg-spoiler>{m}</tg-spoiler>')
+                    #except ValueError:
+                    #    encrypted_message = 'Неккоректное сообщение. Видимо, вы передали не BASE64 формат при расшифровке гаммирования, либо не те параметры при расшифровании гаммы'
+
     if(data.get("typeOfCrypt") is None):
         await call.message.edit_text('<b>Не задан алгоритм шифрования.</b>',reply_markup=inline_greet())
     elif(data.get("messagerec") is None or encrypted_message == ''):
@@ -178,11 +310,13 @@ async def cryptanalysis(call: CallbackQuery, state: FSMContext):
             await state.update_data(messagerec=msg)
         except (UnicodeDecodeError, AttributeError):
             await call.message.answer('<b>Проблема с файлом. Вероятно, это не UTF-8?</b>', reply_markup=inline_greet())
+            await state.set_state()
             return 0
     try:
         rd,ed,smbcnt = symbol_count(msg)
     except TypeError:
         await call.message.answer('<b>Проблема с сообщением. Вероятно, текст пуст?</b>', reply_markup=inline_greet())
+        await state.set_state()
         return 0
     euf,ruf = check_alphabets(msg)
     if data.get("res_dict") is None:
@@ -281,4 +415,91 @@ async def table_recv(message: Message, state: FSMContext):
                 f'<b>Таблица замены после изменений</b>:\n<code>{"\n".join([f"{k} - {v}" for k, v in kd.items()])}</code>',
                 reply_markup=crypto_inline_change_text_params())
         await state.update_data(res_dict=res_dict)
+        await state.set_state()
+
+@encryrouter.callback_query(F.data == 'gamma_settings')
+async def gamma_stngs(call: CallbackQuery, state: FSMContext):
+    await call.message.edit_text('<b>Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+    await state.set_state()
+
+
+@encryrouter.callback_query(F.data.in_(['seed', 'multiplier', 'modulo', 'summand']))
+async def set_params_state(call: CallbackQuery, state: FSMContext):
+    async with ChatActionSender(bot=bot, chat_id=call.from_user.id):
+        if call.data == 'seed':
+            await call.message.answer(
+                'Введите <b>зерно</b>. Принимается только целое число: ')
+        if call.data == 'multiplier':
+            await call.message.answer(
+                'Введите <b>множитель</b>. Принимается только целое число: ')
+        if call.data == 'summand':
+            await call.message.answer(
+                'Введите <b>слагаемое</b>. Принимается только целое число: ')
+        if call.data == 'modulo':
+            await call.message.answer(
+                'Введите <b>модуль</b>. Принимается только целое число: ')
+        call_data = call.data
+    await state.set_state(getattr(message_to_crypto,call_data,None))
+
+@encryrouter.message(F.text, message_to_crypto.seed)
+async def set_seed(message: Message, state: FSMContext):
+    seed = message.text
+    try:
+        seed = int(seed)
+        await state.update_data(seed=seed)
+        await message.answer('<b>Сид назначен. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+    except ValueError:
+        await message.answer('<b>Неверное значение. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+
+
+@encryrouter.message(F.text, message_to_crypto.modulo)
+async def set_seed(message: Message, state: FSMContext):
+    m = message.text
+    try:
+        m = int(m)
+        await state.update_data(modulo=m)
+        await message.answer('<b>Модуль назначен. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+    except ValueError:
+        await message.answer('<b>Неверное значение. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+
+@encryrouter.message(F.text, message_to_crypto.multiplier)
+async def set_seed(message: Message, state: FSMContext):
+    a = message.text
+    try:
+        a = int(a)
+        await state.update_data(multiplier=a)
+        await message.answer('<b>Множитель назначен. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+    except ValueError:
+        await message.answer('<b>Неверное значение. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+
+@encryrouter.message(F.text, message_to_crypto.summand)
+async def set_summand(message: Message, state: FSMContext):
+    c = message.text
+    try:
+        c = int(c)
+        await state.update_data(summand=c)
+        await message.answer('<b>Слагаемое назначено. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+    except ValueError:
+        await message.answer('<b>Неверное значение. Выберите параметр: </b>', reply_markup=gamma_inline_settings())
+        await state.set_state()
+
+@encryrouter.callback_query(F.data == 'xor_cipher')
+async def gammand(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    msg = data.get("messagerec")
+    if (data.get("isFile") is None):
+        await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>', reply_markup=inline_greet())
+    elif (data.get("isFile") == 1):
+        msg = msg.read()
+        await state.update_data(messagerec=msg)
+    gamma_bytes = rand_gen(len(msg),data.get("seed"),data.get("multiplier"),data.get("summand"),data.get("modulo"))
+    if(data.get("isFile") == 1):
+        await call.message.answer_document(BufferedInputFile(gamma(msg,gamma_bytes),filename="result.out"))
         await state.set_state()

@@ -16,6 +16,10 @@ class message_to_crypto(StatesGroup):
     isFile = State()
     res_dict = State()
     table = State()
+    seed = State()
+    multiplier = State()
+    summand = State()
+    modulo = State()
 
 @start_router.message(CommandStart())
 async def cmd_start(message: Message):
