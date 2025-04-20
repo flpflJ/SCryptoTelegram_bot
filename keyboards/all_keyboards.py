@@ -4,12 +4,13 @@ from aiogram.types import ReplyKeyboardRemove, \
 def inline_greet():
     f = [[InlineKeyboardButton(text='Зашифровать 🔑', callback_data = 'encrypto')],
           [InlineKeyboardButton(text='Расшифровать 🔐', callback_data = 'decrypt')],
+         [InlineKeyboardButton(text='Частотный криптоанализ 📊', callback_data='cryptoanalysis')],
           [InlineKeyboardButton(text='Настройки ⚙️', callback_data = 'settings')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=f)
 def settings_inline():
     f = [[InlineKeyboardButton(text='🔒 Шифр', callback_data = 'encrypt')],
-         [InlineKeyboardButton(text='💬 Сообщение', callback_data='msg')],
+         [InlineKeyboardButton(text='💬 Ввод', callback_data='msg')],
          [InlineKeyboardButton(text='🗝 Ключ',callback_data='key')],
          [InlineKeyboardButton(text='🔙 Назад', callback_data = 'back')]
     ]
@@ -27,5 +28,11 @@ def settings_encrypt_inline():
 def crypto_inline_greet():
     inline_kb_list = [
         [InlineKeyboardButton(text='🔙 Назад', callback_data='back')]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
+def crypto_inline_change_text_params():
+    inline_kb_list = [
+        [InlineKeyboardButton(text='🔙 Назад', callback_data='back')],
+        [InlineKeyboardButton(text='🔄 Замена символов в тексте', callback_data='change')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
