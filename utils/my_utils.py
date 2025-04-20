@@ -253,6 +253,28 @@ def playfair_cipher(message,key,flag):
     else:
         return res.replace('~', '')
 
+def replace_symbol(text,result_dict):
+    result=[]
+    for ch in text:
+        original_case_char = ch
+        check_char = ch.upper()
+
+        replacement = result_dict.get(check_char, None)
+
+        if replacement is not None:
+            if original_case_char.islower():
+                replacement = replacement.lower()
+            else:
+                replacement = replacement.upper()
+            result.append(replacement)
+        else:
+            result.append(original_case_char)
+
+    final_string = "".join(result)
+
+    return final_string
+
+
 def symbol_count(text):
     try:
         ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
@@ -288,15 +310,6 @@ def generate_hist(rd, flag):
     plt.savefig(stringbytes, format='jpg')
     stringbytes.seek(0)
     return base64.b64encode(stringbytes.read()).decode()
-
-def symbol_replace(replace, replaceto, text):
-    text = text.upper()
-    replace = replace.upper()
-    replaceto = replaceto.upper()
-    text = text.replace(replace, '~')
-    text = text.replace(replaceto, replace)
-    text = text.replace('~', replaceto)
-    return text
 
 def ind_of_c(text):
     reference_prob_ru = {
@@ -349,7 +362,7 @@ def ind_of_c(text):
             best_key_en = k
     for i in rae:
         edd[i]=rae[char_to_ind[i]-best_key_en % len(rae)]
-    return best_key_ru,best_key_en,kd,edd
+    return kd,edd
 
 def parse_validate_pairs(str):
     pattern = (
@@ -359,7 +372,7 @@ def parse_validate_pairs(str):
         r'\s*$'
     )
     if not re.fullmatch(pattern,str.upper(),flags=re.IGNORECASE):
-        return 'Невалидный ввод. Формат должен быть вида: А - Б (пробелы значения не имеют, как и регистр)'
+        return None, 'Невалидный ввод. Формат должен быть вида: А - Б (пробелы значения не имеют, как и регистр)'
     pairs = re.findall(
         r'\s*([A-ZА-ЯЁa-zа-яё])\s*-\s*([A-ZА-ЯЁa-zа-яё])\s*',
         str.upper(),
@@ -379,27 +392,23 @@ def parse_validate_pairs(str):
 
     return left, right
 
-def swap_symbol(left,right, kd, edd, text):
-    EN_LETTERS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-    res_txt = ''
+def swap_symbol(left,right, res_dict):
     for i in range(len(left)):
-        if left[i] in EN_LETTERS:
-            res_txt = symbol_replace(edd[left[i]],right[i],text)
-            for k, v in edd:
-                if v == right[i]:
-                    edd[k] = edd[left[i]]
-            edd[left[i]] = right[i]
-        else:
-            res_txt = symbol_replace(kd[left[i]], right[i], text)
-            for k, v in kd:
-                if v == right[i]:
-                    kd[k] = kd[left[i]]
-            kd[left[i]] = right[i]
-    return res_txt
+        for k, v in res_dict.items():
+            if v == right[i]:
+                res_dict[k] = res_dict[left[i]]
+        res_dict[left[i]] = right[i]
 
-def hist_ascii_generate(rd):
-    d = ''
-    graph = Pyasciigraph(line_length=50, float_format='{0:,.3f}')
-    for line in graph.graph('ASCII-гистограмма', [(key, value) for key, value in rd.items()]):
-        d += line + "\n"
-    return d
+def check_alphabets(msg):
+    ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+    ea = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    euf,ruf = 0,0
+    for i in msg.upper():
+        if i in ra:
+            ruf = 1
+            break
+    for i in msg.upper():
+        if i in ea:
+            euf = 1
+            break
+    return euf,ruf
