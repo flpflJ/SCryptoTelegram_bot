@@ -1,5 +1,7 @@
 import base64
 import re
+
+import numpy as np
 from ascii_graph import Pyasciigraph
 import io
 import matplotlib.pyplot as plt
@@ -252,7 +254,7 @@ def playfair_cipher(message,key,flag):
         return res
     else:
         return res.replace('~', '')
-
+#lab7
 def replace_symbol(text,result_dict):
     result=[]
     for ch in text:
@@ -412,3 +414,33 @@ def check_alphabets(msg):
             euf = 1
             break
     return euf,ruf
+#lab8
+def LCG(Xn,a,c,m):
+    return (a * Xn + c) % m
+
+def rand_gen(length : int, seed : int =1,a : int = 1002378,c : int = 101393193,m : int = 22167236):
+    if m is None:
+        m = 22167236
+    if c is None:
+        c = 101393193
+    if a is None:
+        a = 1002378
+    if seed is None:
+        seed = 1
+    res = []
+    Xn = seed
+    for _ in range(length):
+        res.append(Xn)
+        Xn = LCG(Xn, a, c, m)
+    gamma = bytearray()
+    for num in res:
+        if num > 4294967295:
+            num = num % 4294967295
+        gamma.extend(num.to_bytes(4, byteorder='little'))
+    return gamma[:length]
+
+def gamma(text,key):
+    return bytes([a^b for a,b in zip(text,key)])
+#def gamma(text,key):
+#    return bytes(np.bitwise_xor(np.frombuffer(text), key))
+
