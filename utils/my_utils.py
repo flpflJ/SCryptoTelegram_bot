@@ -1,4 +1,9 @@
+import base64
 import re
+
+import numpy as np
+import io
+import matplotlib.pyplot as plt
 def atbashcrypt(message):
     rusalph = list('абвгдеёжзийклмнопрстуфхцчшщъыьэюя')
     rusalphdict = dict(zip(rusalph, list(range(len(rusalph)))))
@@ -248,3 +253,199 @@ def playfair_cipher(message,key,flag):
         return res
     else:
         return res.replace('~', '')
+#lab7
+def replace_symbol(text,result_dict):
+    result=[]
+    for ch in text:
+        original_case_char = ch
+        check_char = ch.upper()
+
+        replacement = result_dict.get(check_char, None)
+
+        if replacement is not None:
+            if original_case_char.islower():
+                replacement = replacement.lower()
+            else:
+                replacement = replacement.upper()
+            result.append(replacement)
+        else:
+            result.append(original_case_char)
+
+    final_string = "".join(result)
+
+    return final_string
+
+
+def symbol_count(text):
+    try:
+        ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+        ea = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        rd = dict.fromkeys(ra,0)
+        ed = dict.fromkeys(ea, 0)
+        smbcnt = 0
+        text = text.upper()
+        for _ in text:
+            if _ in ra or _ in ea:
+                smbcnt+=1
+        for key in rd:
+            rd[key] = round(text.count(key)/smbcnt,3)
+        for key in ed:
+            ed[key] = round(text.count(key)/smbcnt,3)
+        return rd, ed, smbcnt
+    except ZeroDivisionError:
+        print('Текст не может быть пустой.')
+
+def generate_hist(rd, flag):
+    keys = list(rd.keys())
+    values = list(rd.values())
+    plt.figure(figsize=(8, 5))
+    plt.bar(keys, values, color='skyblue')
+    if flag == 0:
+        plt.title("Гистограмма букв русского алфавита")
+    else:
+        plt.title("Гистограмма букв английского алфавита")
+    plt.xlabel("Буква")
+    plt.ylabel("Частота появления")
+    plt.grid(axis='y', linestyle='--', alpha=0.5)
+    stringbytes = io.BytesIO()
+    plt.savefig(stringbytes, format='jpg')
+    stringbytes.seek(0)
+    return base64.b64encode(stringbytes.read()).decode()
+
+def ind_of_c(text):
+    reference_prob_ru = {
+        "Р": 0.040, "Я": 0.018, "Х": 0.009, "О": 0.090, "В": 0.038, "Ы": 0.018, "Ж": 0.007, "Е": 0.072, "Ё": 0.072, "Л": 0.035, "З": 0.016, "Ю": 0.006, "А": 0.062,
+        "К": 0.028, "Ъ": 0.014, "Ь": 0.014, "Ш": 0.006, "И": 0.062, "М": 0.026, "Б": 0.014, "Ц": 0.004, "Н": 0.053, "Д": 0.025, "Г": 0.013, "Щ": 0.003, "Т": 0.053,
+        "П": 0.023, "Ч": 0.012, "Э": 0.003, "С": 0.045, "У": 0.021, "Й": 0.010, "Ф": 0.002
+    }
+    reference_prob_en = {
+        "E": 0.123, "L": 0.040, "B": 0.016, "T": 0.096, "D": 0.036, "G": 0.016, "A": 0.081, "C": 0.032, "V": 0.009, "O": 0.079, "U": 0.031, "K": 0.005, "N": 0.072,
+        "P": 0.023, "Q": 0.002, "I": 0.071, "F": 0.023, "X": 0.002, "S": 0.066, "M": 0.022, "J": 0.001, "R": 0.060, "W": 0.020, "Z": 0.001, "H": 0.051, "Y": 0.019
+    }
+   # max_ic = -1
+    #best_key_en = 0
+    #best_key_ru = 0
+    rd,ed,smbcnt=symbol_count(text)
+    sorted_ru = dict(sorted(reference_prob_ru.items(), key=lambda item: item[1]))
+    sorted_en = dict(sorted(reference_prob_en.items(), key=lambda item: item[1]))
+    rd_sorted = dict(sorted(rd.items(), key=lambda item: item[1]))
+    ed_sorted = dict(sorted(ed.items(), key=lambda item: item[1]))
+    edd = dict(sorted(dict(zip(ed_sorted.keys(),sorted_en.keys())).items(), key=lambda item: item))
+    kd = dict(sorted(dict(zip(rd_sorted.keys(),sorted_ru.keys())).items(), key=lambda item: item))
+    #print(sorted_en)
+    #print(ed_sorted)
+    # ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+    # char_to_ind = {char: i for i, char in enumerate(ra)}
+    # for k in range(len(ra)):
+    #     cur_ic = 0.0
+    #     for char, freq in rd.items():
+    #         if char not in char_to_ind:
+    #             continue
+    #         cipher_idx = char_to_ind[char]
+    #         original_idx = (cipher_idx - k) % len(ra)
+    #         original_char = ra[original_idx]
+    #
+    #         cur_ic += freq * reference_prob_ru.get(original_char)
+    #     if cur_ic > max_ic:
+    #         max_ic = cur_ic
+    #         best_key_ru = k
+    # for i in ra:
+    #     kd[i]=ra[char_to_ind[i]-best_key_ru % len(ra)]
+    # rae = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    # max_ic = -1
+    # char_to_ind = {char: i for i, char in enumerate(rae)}
+    # for k in range(len(rae)):
+    #     cur_ic = 0.0
+    #     for char, freq in ed.items():
+    #         if char not in char_to_ind:
+    #             continue
+    #         cipher_idx = char_to_ind[char]
+    #         original_idx = (cipher_idx - k) % len(rae)
+    #         original_char = rae[original_idx]
+    #
+    #         cur_ic += freq * reference_prob_en.get(original_char)
+    #     if cur_ic > max_ic:
+    #         max_ic = cur_ic
+    #         best_key_en = k
+    # for i in rae:
+    #     edd[i]=rae[char_to_ind[i]-best_key_en % len(rae)]
+    return kd,edd
+
+def parse_validate_pairs(str):
+    pattern = (
+        r'^\s*'
+        r'([A-ZА-ЯЁa-zа-яё]\s*-\s*[A-ZА-ЯЁa-zа-яё])'
+        r'(?:\s*,\s*([A-ZА-ЯЁa-zа-яё]\s*-\s*[A-ZА-ЯЁa-zа-яё]))*'
+        r'\s*$'
+    )
+    if not re.fullmatch(pattern,str.upper(),flags=re.IGNORECASE):
+        return None, 'Невалидный ввод. Формат должен быть вида: А - Б (пробелы значения не имеют, как и регистр)'
+    pairs = re.findall(
+        r'\s*([A-ZА-ЯЁa-zа-яё])\s*-\s*([A-ZА-ЯЁa-zа-яё])\s*',
+        str.upper(),
+        flags=re.IGNORECASE
+    )
+    EN_LETTERS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    RU_LETTERS = set('АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ')
+    for pair in pairs:
+        first, second = pair[0].upper(), pair[1].upper()
+
+        lang_first = 0 if first in EN_LETTERS else 1 if first in RU_LETTERS else None
+        lang_second = 0 if second in EN_LETTERS else 1 if second in RU_LETTERS else None
+        if lang_first != lang_second:
+            return 'Невалидный ввод. Алфавиты не совпадают.'
+    left = [pair[0].upper() for pair in pairs]
+    right = [pair[1].upper() for pair in pairs]
+
+    return left, right
+
+def swap_symbol(left,right, res_dict):
+    for i in range(len(left)):
+        for k, v in res_dict.items():
+            if v == right[i]:
+                res_dict[k] = res_dict[left[i]]
+        res_dict[left[i]] = right[i]
+
+def check_alphabets(msg):
+    ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
+    ea = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    euf,ruf = 0,0
+    for i in msg.upper():
+        if i in ra:
+            ruf = 1
+            break
+    for i in msg.upper():
+        if i in ea:
+            euf = 1
+            break
+    return euf,ruf
+#lab8
+def LCG(Xn,a,c,m):
+    return (a * Xn + c) % m
+
+def rand_gen(length : int, seed : int = 1,a : int = 1002378,c : int = 101393193,m : int = 22167236):
+    if m is None:
+        m = 22167236
+    if c is None:
+        c = 101393193
+    if a is None:
+        a = 1002378
+    if seed is None:
+        seed = 1
+    res = []
+    Xn = seed
+    for _ in range(length):
+        Xn = LCG(Xn, a, c, m)
+        res.append(Xn)
+    gamma = bytearray()
+    for num in res:
+        if num >= 4294967295:
+            num = num % 4294967295
+        gamma.extend(num.to_bytes(4, byteorder='little'))
+    return gamma[:length]
+
+def gamma(text,key):
+    return bytes([a^b for a,b in zip(text,key)])
+#def gamma(text,key):
+#    return bytes(np.bitwise_xor(np.frombuffer(text), key))
+
