@@ -418,7 +418,7 @@ def check_alphabets(msg):
 def LCG(Xn,a,c,m):
     return (a * Xn + c) % m
 
-def rand_gen(length : int, seed : int =1,a : int = 1002378,c : int = 101393193,m : int = 22167236):
+def rand_gen(length : int, seed : int = 1,a : int = 1002378,c : int = 101393193,m : int = 22167236):
     if m is None:
         m = 22167236
     if c is None:
