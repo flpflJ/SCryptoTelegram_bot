@@ -11,7 +11,8 @@ from keyboards.all_keyboards import settings_encrypt_inline, crypto_inline_greet
     crypto_inline_change_text_params, gamma_inline_settings
 from utils.my_utils import atbashcrypt, caesarcrypt, richelieu, gronsfeld_cipher, vigenere_cipher, playfair_cipher, \
     symbol_count, generate_hist, ind_of_c, replace_symbol, parse_validate_pairs, swap_symbol, check_alphabets, rand_gen, \
-    gamma
+    gamma, des_encrypt_message, des_decrypt_message, bits_to_str, encode_base64, decode_base64, des_encrypt_bytes, \
+    des_decrypt_bytes
 
 encryrouter = Router()
 
@@ -19,7 +20,7 @@ ddd = []
 kkk = []
 MESSAGE_MAX_LENGTH = 4096
 
-@encryrouter.callback_query(F.data.in_(['atbash', 'caesar', 'richeliu', 'gronsfeld', 'vigenere', 'playfair', 'xor_cipher']))
+@encryrouter.callback_query(F.data.in_(['atbash', 'caesar', 'richeliu', 'gronsfeld', 'vigenere', 'playfair', 'xor_cipher', 'DES']))
 async def cypherReceive(call: CallbackQuery, state: FSMContext):
     async with ChatActionSender(bot=bot, chat_id=call.from_user.id):
         await call.message.edit_text('Шифр успешно выбран. Выберите опцию', reply_markup=settings_inline())
@@ -89,7 +90,7 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
         cypher = data.get("typeOfCrypt")
         if (data.get("isFile") is None):
             await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>', reply_markup=inline_greet())
-        elif (data.get("isFile") == 1 and cypher != 'xor_cipher'):
+        elif (data.get("isFile") == 1 and cypher != 'xor_cipher' and cypher != 'DES'):
             try:
                 msg = msg.read().decode("utf-8")
                 await state.update_data(messagerec=msg)
@@ -112,6 +113,22 @@ async def encryptCmd(call: CallbackQuery, state: FSMContext):
                 encrypted_message = vigenere_cipher(data.get("messagerec"),data.get("key"),0)
             elif(cypher == 'playfair'):
                 encrypted_message = playfair_cipher(data.get("messagerec"),data.get("key"),0)
+            elif(cypher == 'DES'):
+                msg = data.get("messagerec")
+                if (data.get("isFile") is None):
+                    await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>',
+                                                 reply_markup=inline_greet())
+                elif (data.get("isFile") == 1):
+                    if (type(msg) is not bytes):
+                        msg = msg.read()
+                    await state.update_data(messagerec=msg)
+                    await call.message.answer_document(
+                        BufferedInputFile(des_encrypt_bytes(msg,data.get("key")), filename="result.out"))
+                    await call.message.answer('Файл успешно обработан!', reply_markup=crypto_inline_greet())
+                    await state.set_state()
+                    return 0
+                else:
+                    encrypted_message = encode_base64(des_encrypt_message(msg,data.get("key")))
             elif(cypher == 'xor_cipher'):
                 msg = data.get("messagerec")
                 if (data.get("isFile") is None):
@@ -196,7 +213,7 @@ async def decryptCmd(call: CallbackQuery, state: FSMContext):
         cypher = data.get("typeOfCrypt")
         if (data.get("isFile") is None):
             await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>', reply_markup=inline_greet())
-        elif (data.get("isFile") == 1 and cypher != 'xor_cipher'):
+        elif (data.get("isFile") == 1 and cypher != 'xor_cipher' and cypher != 'DES'):
             try:
                 msg = msg.read().decode("utf-8")
                 await state.update_data(messagerec=msg)
@@ -219,6 +236,22 @@ async def decryptCmd(call: CallbackQuery, state: FSMContext):
                 encrypted_message = vigenere_cipher(data.get("messagerec"),data.get("key"),1)
             elif(cypher == 'playfair'):
                 encrypted_message = playfair_cipher(data.get("messagerec"),data.get("key"),1)
+            elif(cypher == 'DES'):
+                msg = data.get("messagerec")
+                if (data.get("isFile") is None):
+                    await call.message.edit_text('<b>Не введено сообщение, либо нет файла.</b>',
+                                                 reply_markup=inline_greet())
+                elif (data.get("isFile") == 1):
+                    if (type(msg) is not bytes):
+                        msg = msg.read()
+                    await state.update_data(messagerec=msg)
+                    await call.message.answer_document(
+                        BufferedInputFile(des_decrypt_bytes(msg, data.get("key")), filename="result.bin"))
+                    await call.message.answer('Файл успешно обработан!', reply_markup=crypto_inline_greet())
+                    await state.set_state()
+                    return 0
+                else:
+                    encrypted_message = des_decrypt_message(decode_base64(data.get("messagerec")),data.get("key"))
             elif (cypher == 'xor_cipher'):
                 msg = data.get("messagerec")
                 if (data.get("isFile") is None):

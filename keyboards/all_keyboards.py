@@ -22,6 +22,7 @@ def settings_encrypt_inline():
          [InlineKeyboardButton(text='⚗️ Шифр Виженера', callback_data='vigenere')],
          [InlineKeyboardButton(text='⚛️ Шифр Плейфера', callback_data='playfair')],
          [InlineKeyboardButton(text='🔭 Гаммирование', callback_data='xor_cipher')],
+         [InlineKeyboardButton(text='DES',callback_data='DES')],
          [InlineKeyboardButton(text='🔙 Назад', callback_data = 'settings')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=f)
