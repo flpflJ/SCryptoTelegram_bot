@@ -1,7 +1,7 @@
 import base64
 import re
-
-import numpy as np
+import math
+import random
 import io
 import matplotlib.pyplot as plt
 def atbashcrypt(message):
@@ -699,3 +699,143 @@ def des_decrypt_bytes(data: bytes, key: str) -> bytes:
         decrypted += des_decrypt_block(block, key_bits)
     decrypted = unpad_bits(decrypted)
     return bits_to_bytes(decrypted)
+
+def sieve_of_eratosthenes(limit):
+    sieve = [True] * (limit + 1)
+    sieve[0] = sieve[1] = False
+    for num in range(2, int(math.sqrt(limit)) + 1):
+        if sieve[num]:
+            sieve[num * num: limit + 1: num] = [False] * len(sieve[num * num: limit + 1: num])
+    return [num for num, is_prime in enumerate(sieve) if is_prime]
+
+
+def generate_500_digit_odd():
+
+    first_digit = str(random.choice(range(1, 10)))
+
+    middle_digits = ''.join(str(random.choice(range(10))) for _ in range(random.choice(range(100,300))))
+
+    last_digit = str(random.choice([1, 3, 5, 7, 9]))
+
+    number_str = first_digit + middle_digits + last_digit
+    return int(number_str)
+
+
+def check_small_primes(n, small_primes):
+    for p in small_primes:
+        if n % p == 0:
+            return False
+    return True
+
+
+def miller_rabin_test(n, k=20):
+    if n <= 1:
+        return False
+    elif n <= 3:
+        return True
+    elif n % 2 == 0:
+        return False
+
+    d = n - 1
+    s = 0
+    while d % 2 == 0:
+        d //= 2
+        s += 1
+
+    for _ in range(k):
+        a = random.randint(1,n-1)+2
+        x = pow(a, d, n)
+        if x == 1 or x == n - 1:
+            continue
+        for __ in range(s - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
+            return False
+    return True
+
+
+def generate_large_prime():
+    small_primes = sieve_of_eratosthenes(1000)
+
+    while True:
+        candidate = generate_500_digit_odd()
+
+        if not check_small_primes(candidate, small_primes):
+            continue
+
+        if miller_rabin_test(candidate):
+            return candidate
+
+def egcd(a, b):
+    if a == 0:
+        return b, 0, 1
+    gcd, x1, y1 = egcd(b % a, a)
+    x = y1 - (b // a) * x1
+    y = x1
+    return gcd, x, y
+
+def modinv(a, m):
+    gcd, x, _ = egcd(a, m)
+    if gcd != 1:
+        raise Exception('Обратного элемента не существует, видимо, модуль - не простое число.')
+    return x % m
+
+def generate_rsa_keys(p, q, e):
+    #p = generate_large_prime()
+    #q = generate_large_prime()
+    n = p * q
+    phi = (p - 1) * (q - 1)
+    #e = 65537
+    d = modinv(e, phi)
+    return (e, n), (d, n)
+
+def encrypt_rsa(message, pubkey):
+    e, n = pubkey
+    m = int.from_bytes(message.encode('utf-8'), 'big')
+    c = pow(m, e, n)
+    return c
+
+def choose_optimal_e(phi_n, preferred_e=[65537, 257, 17, 5, 3]):
+    """Выбирает оптимальное e на основе φ(n)."""
+    # Проверка предпочтительных значений
+    for e in preferred_e:
+        if math.gcd(e, phi_n) == 1:
+            return e
+    # Генерация случайного e, если стандартные не подошли
+    while True:
+        e_candidate = random.randint(3, phi_n - 1)
+        if math.gcd(e_candidate, phi_n) == 1:
+            return e_candidate
+
+def decrypt_rsa(ciphertext, privkey):
+    d, n = privkey
+    m = pow(ciphertext, d, n)
+    length = (m.bit_length() + 7) // 8
+    return m.to_bytes(length, 'big').decode('utf-8')
+
+def diffie_hellman():
+    p = generate_large_prime()
+    g = 3
+    a = random.randint(1, p-1)
+    b = random.randint(1, p-1)
+    A = pow(g,a,p)
+    B = pow(g,b,p)
+    s_alice = pow (B, a, p)
+    s_bob = pow(A, b, p)
+
+def sign(message, d, n):
+    """Создание подписи с использованием закрытого ключа."""
+    # Хеширование сообщения (упрощённо: преобразование в число)
+    hash_msg = int.from_bytes(message.encode(), byteorder='big') % n
+    # Подпись: hash^d mod n
+    signature = pow(hash_msg, d, n)
+    return signature
+
+def verify(message, signature, e, n):
+    """Проверка подписи с использованием публичного ключа."""
+    hash_msg = int.from_bytes(message.encode(), byteorder='big') % n
+    # Проверка: signature^e mod n == hash_msg?
+    decrypted_hash = pow(signature, e, n)
+    return decrypted_hash == hash_msg
