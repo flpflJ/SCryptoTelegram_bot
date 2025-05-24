@@ -4,6 +4,7 @@ def inline_greet():
           [InlineKeyboardButton(text='Расшифровать 🔐', callback_data = 'decrypt')],
          [InlineKeyboardButton(text='Частотный криптоанализ 📊', callback_data='cryptoanalysis')],
          [InlineKeyboardButton(text='Электронная подпись',callback_data='sign')],
+         [InlineKeyboardButton(text='Протокол обмена Диффи-Хеллмана', callback_data='call_diffie')],
           [InlineKeyboardButton(text='Настройки ⚙️', callback_data = 'settings')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=f)
@@ -14,6 +15,7 @@ def settings_inline():
          [InlineKeyboardButton(text='🗝 Ключ',callback_data='key')],
          [InlineKeyboardButton(text='🐅 Параметры гаммирования',callback_data='gamma_settings')],
          [InlineKeyboardButton(text='Параметры RSA',callback_data='rsa_settings')],
+         [InlineKeyboardButton(text='Параметры протокола Диффи-Хеллмана',callback_data='diffie_settings')],
          [InlineKeyboardButton(text='🔙 Назад', callback_data = 'back')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=f)
@@ -49,6 +51,14 @@ def crypto_inline_signature():
     inline_kb_list = [
         [InlineKeyboardButton(text='Подписать', callback_data='sign_message')],
         [InlineKeyboardButton(text='Проверить подпись', callback_data='verify_message')],
+        [InlineKeyboardButton(text='🔙 Назад', callback_data='settings')]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)
+
+def diffie_hellman_inline_settings():
+    inline_kb_list = [
+        [InlineKeyboardButton(text='Параметр g', callback_data='seed_g')],
+        [InlineKeyboardButton(text='Параметр p', callback_data='seed_p_diffie')],
         [InlineKeyboardButton(text='🔙 Назад', callback_data='settings')]
     ]
     return InlineKeyboardMarkup(inline_keyboard=inline_kb_list)

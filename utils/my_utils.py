@@ -743,7 +743,7 @@ def miller_rabin_test(n, k=20):
         s += 1
 
     for _ in range(k):
-        a = random.randint(1,n-1)+2
+        a = random.randint(1,n-1)
         x = pow(a, d, n)
         if x == 1 or x == n - 1:
             continue
@@ -799,11 +799,9 @@ def encrypt_rsa(message, pubkey):
 
 def choose_optimal_e(phi_n, preferred_e=[65537, 257, 17, 5, 3]):
     """Выбирает оптимальное e на основе φ(n)."""
-    # Проверка предпочтительных значений
     for e in preferred_e:
         if math.gcd(e, phi_n) == 1:
             return e
-    # Генерация случайного e, если стандартные не подошли
     while True:
         e_candidate = random.randint(3, phi_n - 1)
         if math.gcd(e_candidate, phi_n) == 1:
@@ -815,15 +813,16 @@ def decrypt_rsa(ciphertext, privkey):
     length = (m.bit_length() + 7) // 8
     return m.to_bytes(length, 'big').decode('utf-8')
 
-def diffie_hellman():
-    p = generate_large_prime()
-    g = 3
+def diffie_hellman(g, p):
+    #p = generate_large_prime()
+    #g = 3
     a = random.randint(1, p-1)
     b = random.randint(1, p-1)
     A = pow(g,a,p)
     B = pow(g,b,p)
     s_alice = pow (B, a, p)
     s_bob = pow(A, b, p)
+    return A, B, s_alice, s_bob
 
 def sign(message, d, n):
     """Создание подписи с использованием закрытого ключа."""

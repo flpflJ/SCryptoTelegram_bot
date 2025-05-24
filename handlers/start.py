@@ -26,6 +26,8 @@ class message_to_crypto(StatesGroup):
     rsa_d = State()
     rsa_module = State()
     rsa_sign = State()
+    seed_g = State()
+    seed_p_diffie = State()
 
 @start_router.message(CommandStart())
 async def cmd_start(message: Message):
