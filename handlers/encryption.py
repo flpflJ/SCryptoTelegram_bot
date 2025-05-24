@@ -516,8 +516,8 @@ async def diffie_hellman_exchange(call: CallbackQuery, state: FSMContext):
         p = generate_large_prime()
     if(data.get("seed_g") is None):
         g = 3
-    A, B, s_alice, s_bob = diffie_hellman(g,p)
-    await call.message.answer(f'Параметры обмена:\np: <tg-spoiler>{p}</tg-spoiler>;\ng: <tg-spoiler>{g}</tg-spoiler>;\nСекрет Алисы: <tg-spoiler>{s_alice}</tg-spoiler>;\nСекрет Боба: <tg-spoiler>{s_bob}</tg-spoiler>\nОткрытый ключ Алисы: <tg-spoiler>{A}</tg-spoiler>\nОткрытый ключ Боба: <tg-spoiler>{B}</tg-spoiler>')
+    A, B, s_alice, s_bob, obsh = diffie_hellman(g,p)
+    await call.message.answer(f'Параметры обмена:\np: <tg-spoiler>{p}</tg-spoiler>;\ng: <tg-spoiler>{g}</tg-spoiler>;\nСекрет Алисы: <tg-spoiler>{s_alice}</tg-spoiler>;\nСекрет Боба: <tg-spoiler>{s_bob}</tg-spoiler>\nОткрытый ключ Алисы: <tg-spoiler>{A}</tg-spoiler>\nОткрытый ключ Боба: <tg-spoiler>{B}</tg-spoiler>\nОбщий секретный ключ K: <tg-spoiler>{obsh}</tg-spoiler>')
     await state.set_state()
 
 @encryrouter.callback_query(F.data == 'sign_message')
@@ -527,6 +527,11 @@ async def message_sign(call: CallbackQuery, state: FSMContext):
         await call.message.edit_text('<b>Не введено сообщение.</b>', reply_markup=inline_greet())
         await state.set_state()
     else:
+        msg = data.get('messagerec')
+        if data.get('isFile') == 1:
+            if (type(msg) is not bytes):
+                msg = msg.read()
+                await state.update_data(messagerec=msg)
         p = data.get("p")
         if p is None:
             p = generate_large_prime()
@@ -537,7 +542,10 @@ async def message_sign(call: CallbackQuery, state: FSMContext):
         if e is None:
             e = 65537
         public_key, private_key = generate_rsa_keys(p, q, e)
-        signature = sign(data.get('messagerec'),private_key[0], private_key[1])
+        if data.get("isFile") == 0:
+            signature = sign(msg,private_key[0], private_key[1], 0)
+        else:
+            signature = sign(msg, private_key[0], private_key[1], 1)
         await call.message.answer(
             f'Значения параметров подписи:\ne: <tg-spoiler>{e}</tg-spoiler>; \nn: <tg-spoiler>{p * q}</tg-spoiler>; \nd: <tg-spoiler>{private_key[0]}</tg-spoiler>')
         await call.message.answer(f'Значение подписи:\n<tg-spoiler>{signature}</tg-spoiler>')
@@ -550,14 +558,22 @@ async def verify_message(call: CallbackQuery, state: FSMContext):
         await call.message.edit_text('<b>Не введено сообщение, либо один из параметров (подпись, открытый ключ в виде параметров e и n)</b>', reply_markup=inline_greet())
         await state.set_state()
     else:
+        msg = data.get('messagerec')
+        if data.get('isFile') == 1:
+            if (type(msg) is not bytes):
+                msg = msg.read()
+                await state.update_data(messagerec=msg)
         sign = data.get("rsa_sign")
         e = data.get('seed_e')
         n = data.get('rsa_module')
-        verify_result = verify(data.get('messagerec'), int(sign), e, n)
-        if verify_result:
-            await call.message.answer(f'Сообщение:<tg-spoiler>{data.get('messagerec')}</tg-spoiler> <b>является подлинным</b>.\nПодпись: {sign}')
+        if data.get("isFile") == 0:
+            verify_result = verify(msg, int(sign), e, n, 0)
         else:
-            await call.message.answer(f'Сообщение:<tg-spoiler>{data.get('messagerec')}</tg-spoiler> подлинным <b>не является</b>. \nПодпись: {sign} недействительна для данного сообщения.')
+            verify_result = verify(msg, int(sign), e, n, 1)
+        if verify_result:
+            await call.message.answer(f'Сообщение <b>является подлинным</b>.\nПодпись: {sign}')
+        else:
+            await call.message.answer(f'Сообщение подлинным <b>не является</b>. \nПодпись: {sign} недействительна для данного сообщения.')
         await state.set_state()
 
 @encryrouter.callback_query(F.data.in_(['seed', 'multiplier', 'modulo', 'summand', 'seed_p', 'seed_q','seed_e', 'rsa_module', 'rsa_d', 'rsa_sign', 'seed_g']))
@@ -607,7 +623,7 @@ async def set_params_state(call: CallbackQuery, state: FSMContext):
     await state.set_state(getattr(message_to_crypto,call_data,None))
 
 @encryrouter.message(F.text, message_to_crypto.seed_g)
-async def set_sign(message: Message, state: FSMContext):
+async def set_seed_g(message: Message, state: FSMContext):
     seed = message.text
     try:
         seed = int(seed)

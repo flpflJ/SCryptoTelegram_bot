@@ -798,7 +798,6 @@ def encrypt_rsa(message, pubkey):
     return c
 
 def choose_optimal_e(phi_n, preferred_e=[65537, 257, 17, 5, 3]):
-    """Выбирает оптимальное e на основе φ(n)."""
     for e in preferred_e:
         if math.gcd(e, phi_n) == 1:
             return e
@@ -821,20 +820,20 @@ def diffie_hellman(g, p):
     A = pow(g,a,p)
     B = pow(g,b,p)
     s_alice = pow (B, a, p)
-    s_bob = pow(A, b, p)
-    return A, B, s_alice, s_bob
+    return A, B, a, b, s_alice
 
-def sign(message, d, n):
-    """Создание подписи с использованием закрытого ключа."""
-    # Хеширование сообщения (упрощённо: преобразование в число)
-    hash_msg = int.from_bytes(message.encode(), byteorder='big') % n
-    # Подпись: hash^d mod n
+def sign(message, d, n, f):
+    dd = message
+    if f == 0:
+        dd = message.encode()
+    hash_msg = int.from_bytes(dd, byteorder='big') % n
     signature = pow(hash_msg, d, n)
     return signature
 
-def verify(message, signature, e, n):
-    """Проверка подписи с использованием публичного ключа."""
-    hash_msg = int.from_bytes(message.encode(), byteorder='big') % n
-    # Проверка: signature^e mod n == hash_msg?
+def verify(message, signature, e, n, f):
+    dd = message
+    if f == 0:
+        dd = message.encode()
+    hash_msg = int.from_bytes(dd, byteorder='big') % n
     decrypted_hash = pow(signature, e, n)
     return decrypted_hash == hash_msg
