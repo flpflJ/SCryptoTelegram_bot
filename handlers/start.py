@@ -20,6 +20,14 @@ class message_to_crypto(StatesGroup):
     multiplier = State()
     summand = State()
     modulo = State()
+    seed_p = State()
+    seed_q = State()
+    seed_e = State()
+    rsa_d = State()
+    rsa_module = State()
+    rsa_sign = State()
+    seed_g = State()
+    seed_p_diffie = State()
 
 @start_router.message(CommandStart())
 async def cmd_start(message: Message):
