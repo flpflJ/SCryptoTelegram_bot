@@ -322,9 +322,6 @@ def ind_of_c(text):
         "E": 0.123, "L": 0.040, "B": 0.016, "T": 0.096, "D": 0.036, "G": 0.016, "A": 0.081, "C": 0.032, "V": 0.009, "O": 0.079, "U": 0.031, "K": 0.005, "N": 0.072,
         "P": 0.023, "Q": 0.002, "I": 0.071, "F": 0.023, "X": 0.002, "S": 0.066, "M": 0.022, "J": 0.001, "R": 0.060, "W": 0.020, "Z": 0.001, "H": 0.051, "Y": 0.019
     }
-   # max_ic = -1
-    #best_key_en = 0
-    #best_key_ru = 0
     rd,ed,smbcnt=symbol_count(text)
     sorted_ru = dict(sorted(reference_prob_ru.items(), key=lambda item: item[1]))
     sorted_en = dict(sorted(reference_prob_en.items(), key=lambda item: item[1]))
@@ -332,43 +329,6 @@ def ind_of_c(text):
     ed_sorted = dict(sorted(ed.items(), key=lambda item: item[1]))
     edd = dict(sorted(dict(zip(ed_sorted.keys(),sorted_en.keys())).items(), key=lambda item: item))
     kd = dict(sorted(dict(zip(rd_sorted.keys(),sorted_ru.keys())).items(), key=lambda item: item))
-    #print(sorted_en)
-    #print(ed_sorted)
-    # ra = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'
-    # char_to_ind = {char: i for i, char in enumerate(ra)}
-    # for k in range(len(ra)):
-    #     cur_ic = 0.0
-    #     for char, freq in rd.items():
-    #         if char not in char_to_ind:
-    #             continue
-    #         cipher_idx = char_to_ind[char]
-    #         original_idx = (cipher_idx - k) % len(ra)
-    #         original_char = ra[original_idx]
-    #
-    #         cur_ic += freq * reference_prob_ru.get(original_char)
-    #     if cur_ic > max_ic:
-    #         max_ic = cur_ic
-    #         best_key_ru = k
-    # for i in ra:
-    #     kd[i]=ra[char_to_ind[i]-best_key_ru % len(ra)]
-    # rae = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    # max_ic = -1
-    # char_to_ind = {char: i for i, char in enumerate(rae)}
-    # for k in range(len(rae)):
-    #     cur_ic = 0.0
-    #     for char, freq in ed.items():
-    #         if char not in char_to_ind:
-    #             continue
-    #         cipher_idx = char_to_ind[char]
-    #         original_idx = (cipher_idx - k) % len(rae)
-    #         original_char = rae[original_idx]
-    #
-    #         cur_ic += freq * reference_prob_en.get(original_char)
-    #     if cur_ic > max_ic:
-    #         max_ic = cur_ic
-    #         best_key_en = k
-    # for i in rae:
-    #     edd[i]=rae[char_to_ind[i]-best_key_en % len(rae)]
     return kd,edd
 
 def parse_validate_pairs(str):
@@ -660,9 +620,13 @@ def des_decrypt_block(block64, key64):
         L, R = R, xor(L, feistel(R, keys[i]))
     return permute(R + L, FP)
 
+def normalize_key(key):
+    key_bytes = key.encode('utf-8')[:8].ljust(8, b'\x00')
+    return bytes_to_bits(key_bytes)
+
 def des_encrypt_message(message, key):
     bits = pad_bits(str_to_bits(message))
-    key_bits = str_to_bits(key)
+    key_bits = normalize_key(key)
     encrypted = []
     for i in range(0, len(bits), 64):
         block = bits[i:i+64]
@@ -670,16 +634,13 @@ def des_encrypt_message(message, key):
     return encrypted
 
 def des_decrypt_message(bits, key):
-    key_bits = str_to_bits(key)
+    key_bits = normalize_key(key)
     decrypted = []
     for i in range(0, len(bits), 64):
         block = bits[i:i+64]
         decrypted += des_decrypt_block(block, key_bits)
-    return unpad_bits(decrypted)
-
-def normalize_key(key):
-    key_bytes = key.encode('utf-8')[:8].ljust(8, b'\x00')
-    return bytes_to_bits(key_bytes)
+    decrypted = unpad_bits(decrypted)
+    return bits_to_str(decrypted)
 
 def des_encrypt_bytes(data: bytes, key: str) -> bytes:
     bits = pad_bits(bytes_to_bits(data))
@@ -813,8 +774,6 @@ def decrypt_rsa(ciphertext, privkey):
     return m.to_bytes(length, 'big').decode('utf-8')
 
 def diffie_hellman(g, p):
-    #p = generate_large_prime()
-    #g = 3
     a = random.randint(1, p-1)
     b = random.randint(1, p-1)
     A = pow(g,a,p)
